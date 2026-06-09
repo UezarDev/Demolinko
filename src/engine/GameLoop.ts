@@ -19,7 +19,6 @@ import { PitManager } from './PitManager';
 import { RunManager } from './RunManager';
 import { ParticleRenderer } from '../rendering/ParticleRenderer';
 import { GridRenderer } from '../rendering/GridRenderer';
-import { UpgradeTreeUI } from '../ui/UpgradeTree';
 import { EventBus } from '../core/EventBus';
 
 export interface GameLoopCallbacks {
@@ -64,8 +63,6 @@ export class GameLoop {
   private callbacks: GameLoopCallbacks;
   private cursorCircle: Graphics;
   private cursorCircleFill: Graphics;
-  private upgradeTreeUI: UpgradeTreeUI;
-  private timeOutScreen: TimeOutScreen;
 
   // Active sandbox entities
   private activeParticles: PixelParticle[] = [];
@@ -95,31 +92,6 @@ export class GameLoop {
     this.cursorCircle = context.cursorCircle;
     this.cursorCircleFill = context.cursorCircleFill;
     this.callbacks = callbacks || {};
-
-    this.upgradeTreeUI = new UpgradeTreeUI(
-      'game-container',
-      this.runManager,
-      this.plinkoBoard,
-      () => {
-        this.restartDay();
-      },
-      () => {
-        this.plinkoBoard.render(this.pegGraphics);
-      }
-    );
-
-    this.timeOutScreen = new TimeOutScreen(
-      'game-container',
-      () => {
-        this.restartDay();
-      },
-      () => {
-        this.upgradeTreeUI.show();
-      },
-      () => {
-        location.reload();
-      }
-    );
   }
 
   /**
@@ -133,6 +105,7 @@ export class GameLoop {
    * Initializes state and registers update tick.
    */
   public start(): void {
+    this.app.stage.visible = true;
     // 1. Vector draw the initial boards
     this.plinkoBoard.render(this.pegGraphics);
     this.pitManager.render(this.pitGraphics, this.config.viewHeight);
@@ -226,7 +199,7 @@ export class GameLoop {
         // Trigger Upgrade Tree Overlay on Contract Failure
         this.runManager.setDraftActive(true);
         this.runManager.persist();
-        this.timeOutScreen.show(this.runManager.getDay(), this.runManager.getCash());
+        EventBus.emit('UI_SHOW_TIMEOUT', { day: this.runManager.getDay(), cash: this.runManager.getCash() });
         return;
       }
     }

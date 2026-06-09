@@ -1,22 +1,12 @@
 // src/ui/TimeOutScreen.ts - Dynamic intermediate "Time Out" Decision Hub screen.
+import { EventBus } from '../core/EventBus';
 
 export class TimeOutScreen {
   private containerId: string;
-  private onRetry: () => void;
-  private onUpgrade: () => void;
-  private onLeave: () => void;
   private overlayEl: HTMLElement | null = null;
 
-  constructor(
-    containerId: string,
-    onRetry: () => void,
-    onUpgrade: () => void,
-    onLeave: () => void
-  ) {
+  constructor(containerId: string) {
     this.containerId = containerId;
-    this.onRetry = onRetry;
-    this.onUpgrade = onUpgrade;
-    this.onLeave = onLeave;
   }
 
   public show(day: number, earnedCash: number): void {
@@ -77,7 +67,7 @@ export class TimeOutScreen {
     if (retryBtn) {
       retryBtn.onclick = () => {
         this.hide();
-        this.onRetry();
+        EventBus.emit('GAME_RETRY_DAY');
       };
     }
 
@@ -85,7 +75,7 @@ export class TimeOutScreen {
     if (upgradeBtn) {
       upgradeBtn.onclick = () => {
         this.hide();
-        this.onUpgrade();
+        EventBus.emit('UI_SHOW_UPGRADES');
       };
     }
 
@@ -93,7 +83,7 @@ export class TimeOutScreen {
     if (leaveBtn) {
       leaveBtn.onclick = () => {
         this.hide();
-        this.onLeave();
+        EventBus.emit('GAME_RESTART_RUN');
       };
     }
   }

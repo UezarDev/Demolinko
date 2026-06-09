@@ -94,7 +94,8 @@ export interface PixelParticle {
   lastSplitPegId: string | null;
 }
 
-export interface Peg {
+export interface Peg { 
+  scale: number;
   id: string;
   x: number;
   y: number;

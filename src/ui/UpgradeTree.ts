@@ -1,3 +1,4 @@
+import { EventBus } from "../core/EventBus";
 // src/ui/UpgradeTree.ts - Draggable Upgrade Tree UI component featuring glassmorphic cards, canvas link lines, and progression constraints.
 import { UPGRADE_TREE } from '../config/upgrades';
 import { RunManager } from '../engine/RunManager';
@@ -83,7 +84,7 @@ export class UpgradeTreeUI {
           <h1>META PROGRESSION</h1>
           <p>Invest gold in the non-linear Demolition Build Tree before starting the next day</p>
         </div>
-        <button class="btn-restart-day" id="tree-restart-btn">Restart Day</button>
+        <button class="btn-restart-day" id="tree-restart-btn">Start Next Day</button>
       </div>
 
       <!-- Viewport area that captures click-and-drag gestures -->
@@ -103,11 +104,7 @@ export class UpgradeTreeUI {
 
     const restartBtn = document.getElementById('tree-restart-btn');
     if (restartBtn) {
-      restartBtn.onclick = () => {
-        if (this.canAffordAnyUpgrade()) {
-          // Locked - Must spend gold
-          return;
-        }
+            restartBtn.onclick = () => {
         this.hide();
         this.onRestartDay();
       };
@@ -279,6 +276,8 @@ export class UpgradeTreeUI {
 
         cardEl.onclick = () => {
           if (this.runManager.purchaseUpgrade(node.id, this.plinkoBoard)) {
+            EventBus.emit('UI_UPDATE_HUD', { cash: this.runManager.getCash(), day: this.runManager.getDay(), remainingTime: this.runManager.contractRemainingTime });
+            this.render();
             if (this.onUpgradePurchased) {
               this.onUpgradePurchased();
             }
@@ -361,14 +360,8 @@ export class UpgradeTreeUI {
     const restartBtn = document.getElementById('tree-restart-btn') as HTMLButtonElement;
     if (!restartBtn) return;
 
-    if (this.canAffordAnyUpgrade()) {
-      restartBtn.disabled = true;
-      restartBtn.className = 'btn-restart-day locked';
-      restartBtn.innerText = 'Spend Gold to Continue';
-    } else {
-      restartBtn.disabled = false;
-      restartBtn.className = 'btn-restart-day ready';
-      restartBtn.innerText = 'Start Next Day';
-    }
+        restartBtn.disabled = false;
+    restartBtn.className = 'btn-restart-day ready';
+    restartBtn.innerText = 'Start Next Day';
   }
 }
