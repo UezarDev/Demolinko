@@ -159,7 +159,7 @@ export class UIManager {
       `;
 
       cardEl.onclick = () => {
-        EventBus.emit('GAME_DRAFT_SELECTED', { cardId: card.id });
+        EventBus.emit('GAME_DRAFT_SELECTED', card.id);
       };
 
       this.cardContainer!.appendChild(cardEl);

@@ -31,6 +31,7 @@ Exports:
 
 import { UPGRADE_TREE } from '../config/upgrades';
 import { SaveManager } from './SaveManager';
+import buildingLibrary from '../../building_library.json';
 
 export interface DraftCard {
   id: string;
@@ -239,8 +240,32 @@ export class RunManager {
   }
 
   /**
-   * Generates up to 5 contract buildings placed side-by-side using smart layout packing
-   * and bounding boxes. Stores references to ensure each frame gets cleared to complete a tier.
+   * Generates a list of building ranks that sum up to the target difficulty.
+   * For difficulty <= 16, it simply returns the single rank.
+   * For difficulty > 16, it randomly partitions the difficulty into ranks between 1 and 16.
+   */
+  private solveDifficultySum(target: number): number[] {
+    if (target <= 16) {
+      return [target];
+    }
+
+    const ranks: number[] = [];
+    let remaining = target;
+
+    while (remaining > 0) {
+      // Pick a random rank between 1 and 16, but don't exceed remaining
+      const maxPossible = Math.min(16, remaining);
+      const rank = Math.floor(Math.random() * maxPossible) + 1;
+      ranks.push(rank);
+      remaining -= rank;
+    }
+
+    return ranks;
+  }
+
+  /**
+   * Generates contract buildings based on the difficulty sum.
+   * Maps ranks to actual sprite indices using the building library.
    */
   public generateContractLayout(
     budget: number,
@@ -255,68 +280,28 @@ export class RunManager {
       }
     }
 
-    const totalFrames = gridEngine.getTotalFrames();
-    if (this.startingContracts === 0) {
-      // Set the baseline starting contracts length equal to the total frames detected on sprite sheet
-      this.startingContracts = totalFrames;
-    }
-
-    if (this.completedFramesInTier.length !== totalFrames) {
-      this.completedFramesInTier = new Array(totalFrames).fill(false);
-    }
-
-    // Place up to 5 buildings side-by-side on a single contract canvas based on the budget difficulty
-    let numBuildings = 1;
-    if (this.day === 1) {
-      numBuildings = 1;
-    } else if (budget > 120) {
-      numBuildings = 5;
-    } else if (budget > 85) {
-      numBuildings = 4;
-    } else if (budget > 55) {
-      numBuildings = 3;
-    } else if (budget > 25) {
-      numBuildings = 2;
-    }
-    numBuildings = Math.min(5, Math.max(1, numBuildings));
-
-    // Choose frames: Prefer frames that haven't been completed in this tier yet
-    const selectedFrames: number[] = [];
-    const uncompletedIndices: number[] = [];
-    for (let i = 0; i < totalFrames; i++) {
-      if (!this.completedFramesInTier[i]) {
-        uncompletedIndices.push(i);
-      }
-    }
-
-    for (let i = 0; i < numBuildings; i++) {
-      if (this.day === 1) {
-        // Find the frame index with the absolute lowest pixel mass
-        const lowestMassFrame = (gridEngine.sortedFramesByMass && gridEngine.sortedFramesByMass.length > 0)
-          ? gridEngine.sortedFramesByMass[0]
-          : 0;
-        selectedFrames.push(lowestMassFrame);
-      } else if (uncompletedIndices.length > 0) {
-        const randIdx = Math.floor(Math.random() * uncompletedIndices.length);
-        const frameVal = uncompletedIndices.splice(randIdx, 1)[0];
-        selectedFrames.push(frameVal);
-      } else {
-        // Fallback to random
-        selectedFrames.push(Math.floor(Math.random() * totalFrames));
-      }
-    }
+    // The difficulty is based on the current day.
+    // Day 1 = Difficulty 1, etc.
+    const difficulty = this.day;
+    const selectedRanks = this.solveDifficultySum(difficulty);
+    
+    // Map ranks to actual sprite indices using the JSON library
+    const selectedFrames: number[] = selectedRanks.map(rank => {
+      const frameIdx = buildingLibrary.ranks[rank - 1];
+      return frameIdx !== undefined ? frameIdx : 0;
+    });
 
     this.lastSelectedFrames = selectedFrames;
 
     // Smart horizontal bounding box packing
-    const gap = 3; // Tightly pack with 3px gap
+    const gap = 3; 
     let totalContentWidth = 0;
     const bboxes = selectedFrames.map(f => gridEngine.getBoundingBox(f));
 
     bboxes.forEach(bbox => {
       totalContentWidth += bbox.contentWidth;
     });
-    totalContentWidth += (numBuildings - 1) * gap;
+    totalContentWidth += (selectedFrames.length - 1) * gap;
 
     // Centered start X coordinate
     let currentX = Math.floor((gridWidth - totalContentWidth) / 2);
@@ -325,23 +310,16 @@ export class RunManager {
     // Load each frame into position
     selectedFrames.forEach((frameIdx, index) => {
       const bbox = bboxes[index];
-      // Target grid X is adjusted by bbox.minX to align true content left edge with currentX
       const targetGridX = currentX - bbox.minX;
-      
-      // Calculate padding bottom for this frame to align its bottom content row exactly on row gridHeight - 1
       const paddingBottom = gridEngine.getPaddingBottom(frameIdx);
       const targetGridY = gridHeight - gridEngine.getSpriteCellSize() + paddingBottom;
 
-      // Copy frame cells dynamically applying our HP scaling curve
       gridEngine.loadFromSpriteSheetFrame(frameIdx, targetGridX, targetGridY, this.difficultyMultiplier);
 
       currentX += bbox.contentWidth + gap;
     });
 
-    // Force structural check to establish initial integrity states
     gridEngine.runStructuralIntegrityPass();
-
-    // Custom WebGL shader-based tint values
     const hueTint = this.getCurrentTierTint();
 
     return { hueTint, tierMultiplier: this.difficultyMultiplier };

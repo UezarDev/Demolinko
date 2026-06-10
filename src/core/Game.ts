@@ -28,6 +28,7 @@ export class Game {
   private particleRenderer!: ParticleRenderer;
   private gridRenderer!: GridRenderer;
   private gameLoop!: GameLoop;
+  private pegGraphics!: Graphics;
   private cursorCircle!: Graphics;
   private cursorCircleFill!: Graphics;
   private upgradeTreeUI!: UpgradeTreeUI;
@@ -50,7 +51,8 @@ export class Game {
       parent.appendChild(this.app.canvas);
     }
 
-    this.gridEngine = new DemolitionGrid(GRID_COLS, GRID_ROWS, GRID_CELL_SIZE);
+    this.gridEngine = new DemolitionGrid(GRID_COLS, GRID_ROWS);
+    await this.gridEngine.loadSpriteSheet('public/buildings.png');
     this.plinkoBoard = new PlinkoBoard(VIEW_WIDTH, VIEW_HEIGHT, GRID_ROWS * GRID_CELL_SIZE);
     this.pitManager = new PitManager(VIEW_WIDTH, VIEW_HEIGHT, 40);
     this.runManager = new RunManager();
@@ -81,17 +83,14 @@ export class Game {
     this.app.stage.addChild(this.cursorCircle);
 
     this.uiManager = new UIManager('game-container');
-    this.uiManager.setupHUDAndOverlays(
-      (selectedCard) => EventBus.emit('GAME_DRAFT_SELECTED', selectedCard.id),
-      () => EventBus.emit('GAME_RESTART_RUN')
-    );
+    this.uiManager.setupHUDAndOverlays();
 
     this.upgradeTreeUI = new UpgradeTreeUI(
       'game-container',
       this.runManager,
       this.plinkoBoard,
       () => this.gameLoop?.restartDay(),
-      () => this.plinkoBoard?.renderPegs()
+      () => this.plinkoBoard?.render(this.pegGraphics)
     );
     this.timeOutScreen = new TimeOutScreen('game-container');
 
@@ -120,12 +119,6 @@ export class Game {
 
     this.gameLoop = new GameLoop(context);
     this.setupMouseListeners();
-
-    try {
-      await this.gridEngine.loadSpriteSheetAndAnalyze('buildings.png');
-    } catch (err) {
-      console.warn('Could not load custom buildings.png, falling back to mock structures:', err);
-    }
 
     const layout = this.runManager.generateContractLayout(30, GRID_COLS, GRID_ROWS, this.gridEngine);
     this.gridRenderer.updateTint(layout.hueTint);
@@ -156,7 +149,7 @@ export class Game {
 
     EventBus.on('UI_SHOW_DRAFT', (data) => {
       const { isGameOver, currentDay, cards } = data;
-      const uiCards = cards.map(c => ({
+      const uiCards = cards.map((c: any) => ({
         id: c.id,
         title: c.title,
         description: c.description,

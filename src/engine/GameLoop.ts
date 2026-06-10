@@ -21,10 +21,6 @@ import { ParticleRenderer } from '../rendering/ParticleRenderer';
 import { GridRenderer } from '../rendering/GridRenderer';
 import { EventBus } from '../core/EventBus';
 
-export interface GameLoopCallbacks {
-  // Completely decoupled; UI interactions now run via EventBus.
-}
-
 export interface GameLoopConfig {
   viewWidth: number;
   viewHeight: number;
@@ -60,7 +56,6 @@ export class GameLoop {
   private pegGraphics: Graphics;
   private pitGraphics: Graphics;
   private config: GameLoopConfig;
-  private callbacks: GameLoopCallbacks;
   private cursorCircle: Graphics;
   private cursorCircleFill: Graphics;
 
@@ -76,8 +71,7 @@ export class GameLoop {
   private popScale: number = 1.0;
 
   constructor(
-    context: GameContext,
-    callbacks?: GameLoopCallbacks
+    context: GameContext
   ) {
     this.app = context.app;
     this.gridEngine = context.gridEngine;
@@ -91,7 +85,6 @@ export class GameLoop {
     this.config = context.config;
     this.cursorCircle = context.cursorCircle;
     this.cursorCircleFill = context.cursorCircleFill;
-    this.callbacks = callbacks || {};
   }
 
   /**
