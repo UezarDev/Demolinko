@@ -70,6 +70,12 @@ export class GameLoop {
   private isMouseOverGrid: boolean = false;
   private popScale: number = 1.0;
 
+  // Screen shake for impact feedback
+  private shakeIntensity: number = 0;
+  private shakeDecay: number = 12.0; // How fast shake fades per second
+  private shakeOffsetX: number = 0;
+  private shakeOffsetY: number = 0;
+
   constructor(
     context: GameContext
   ) {
@@ -163,6 +169,8 @@ export class GameLoop {
         this.cursorCircleFill.scale.set(0.0);
         // Briefly pop outer circle for impact feedback
         this.popScale = 1.3;
+        // Trigger screen shake
+        this.shakeIntensity = 4.0;
       }
     } else {
       this.attackCooldown = 0.0;
@@ -174,6 +182,22 @@ export class GameLoop {
       this.popScale = Math.max(1.0, this.popScale - deltaTime * 3.0);
     }
     this.cursorCircle.scale.set(sizeScale * this.popScale);
+
+    // Screen shake decay and application
+    if (this.shakeIntensity > 0) {
+      this.shakeIntensity = Math.max(0, this.shakeIntensity - this.shakeDecay * deltaTime);
+      this.shakeOffsetX = (Math.random() - 0.5) * 2 * this.shakeIntensity;
+      this.shakeOffsetY = (Math.random() - 0.5) * 2 * this.shakeIntensity;
+      this.pegGraphics.x = this.shakeOffsetX;
+      this.pegGraphics.y = this.shakeOffsetY;
+      this.pitGraphics.x = this.shakeOffsetX;
+      this.pitGraphics.y = this.shakeOffsetY;
+    } else {
+      this.pegGraphics.x = 0;
+      this.pitGraphics.x = 0;
+      this.pegGraphics.y = 0;
+      this.pitGraphics.y = 0;
+    }
 
     // Timer System:
     // Initialize the timer on the first call to gridEngine.damageArea (tracked by damageApplied)
@@ -274,6 +298,15 @@ export class GameLoop {
     this.runManager.isContractTimerActive = false;
     this.runManager.contractRemainingTime = 60.0;
 
+    // Reset screen shake
+    this.shakeIntensity = 0;
+    this.shakeOffsetX = 0;
+    this.shakeOffsetY = 0;
+    this.pegGraphics.x = 0;
+    this.pegGraphics.y = 0;
+    this.pitGraphics.x = 0;
+    this.pitGraphics.y = 0;
+
     EventBus.emit('UI_UPDATE_HUD', {
       cash: this.runManager.getCash(),
       day: this.runManager.getDay(),
@@ -344,6 +377,15 @@ export class GameLoop {
     this.gridEngine.damageApplied = false;
     this.runManager.isContractTimerActive = false;
     this.runManager.contractRemainingTime = 60.0;
+
+    // Reset screen shake
+    this.shakeIntensity = 0;
+    this.shakeOffsetX = 0;
+    this.shakeOffsetY = 0;
+    this.pegGraphics.x = 0;
+    this.pegGraphics.y = 0;
+    this.pitGraphics.x = 0;
+    this.pitGraphics.y = 0;
 
     EventBus.emit('UI_UPDATE_HUD', {
       cash: this.runManager.getCash(),
