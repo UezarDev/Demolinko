@@ -4,16 +4,16 @@ import { GridBuffer } from './GridBuffer';
 import { CellState, PixelParticle } from '../types/game';
 
 export class GridPhysics {
-  private isDirty: boolean = false;
+  private _isDirty: boolean = false;
 
   constructor(private buffer: GridBuffer) {}
 
   public markDirty(): void {
-    this.isDirty = true;
+    this._isDirty = true;
   }
 
   public isDirty(): boolean {
-    return this.isDirty;
+    return this._isDirty;
   }
 
   /**
@@ -22,9 +22,9 @@ export class GridPhysics {
   public update(deltaTime: number, plinkoSpeedModifier: number = 0): PixelParticle[] {
     const spawnedParticles = this.runSandSimulation(deltaTime, plinkoSpeedModifier);
 
-    if (this.isDirty) {
+    if (this._isDirty) {
       this.runStructuralIntegrityPass();
-      this.isDirty = false;
+      this._isDirty = false;
     }
 
     return spawnedParticles;

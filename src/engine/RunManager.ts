@@ -54,7 +54,6 @@ export class RunManager {
   private difficultyMultiplier: number = 1.0;
   private completedFramesInTier: boolean[] = [];
   private lastSelectedFrames: number[] = [];
-  private startingContracts: number = 0;
 
   // Contract Timer and Upgrade System state
   public isContractTimerActive: boolean = false;
@@ -268,7 +267,7 @@ export class RunManager {
    * Maps ranks to actual sprite indices using the building library.
    */
   public generateContractLayout(
-    budget: number,
+    _budget: number,
     gridWidth: number,
     gridHeight: number,
     gridEngine: any

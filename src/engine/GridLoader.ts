@@ -2,7 +2,6 @@
 
 import { GridBuffer } from './GridBuffer';
 import { MaterialType, CellState, GridCell } from '../types/game';
-import { determineMaterialFromRGB } from '../utils/colorUtils';
 import { generateMockSpriteSheetData } from './mocks';
 
 export class GridLoader {

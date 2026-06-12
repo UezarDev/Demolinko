@@ -360,8 +360,15 @@ export class UpgradeTreeUI {
     const restartBtn = document.getElementById('tree-restart-btn') as HTMLButtonElement;
     if (!restartBtn) return;
 
-        restartBtn.disabled = false;
-    restartBtn.className = 'btn-restart-day ready';
-    restartBtn.innerText = 'Start Next Day';
+    const hasAffordableUpgrades = this.canAffordAnyUpgrade();
+    if (hasAffordableUpgrades) {
+      restartBtn.disabled = true;
+      restartBtn.className = 'btn-restart-day locked';
+      restartBtn.innerText = 'Purchase Available Upgrades First';
+    } else {
+      restartBtn.disabled = false;
+      restartBtn.className = 'btn-restart-day ready';
+      restartBtn.innerText = 'Start Next Day';
+    }
   }
 }
