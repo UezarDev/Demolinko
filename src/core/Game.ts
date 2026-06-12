@@ -12,6 +12,8 @@ import { MainMenu } from '../ui/MainMenu';
 import { UpgradeTreeUI } from '../ui/UpgradeTree';
 import { TimeOutScreen } from '../ui/TimeOutScreen';
 import { AudioManager } from '../engine/AudioManager';
+import { AbilityManager } from '../engine/AbilityManager';
+import { AbilitiesPanel } from '../ui/AbilitiesPanel';
 
 const VIEW_WIDTH = 800;
 const VIEW_HEIGHT = 900;
@@ -34,6 +36,8 @@ export class Game {
   private cursorCircleFill!: Graphics;
   private upgradeTreeUI!: UpgradeTreeUI;
   private timeOutScreen!: TimeOutScreen;
+  private abilityManager!: AbilityManager;
+  private abilitiesPanel!: AbilitiesPanel;
 
   public async bootstrap(): Promise<void> {
     TextureStyle.defaultOptions.scaleMode = 'nearest';
@@ -89,6 +93,11 @@ export class Game {
     // Initialize AudioManager
     AudioManager.getInstance().init({ debugLog: true });
 
+    // Initialize AbilityManager and AbilitiesPanel
+    this.abilityManager = new AbilityManager();
+    this.abilitiesPanel = new AbilitiesPanel('game-container', this.abilityManager);
+    this.abilitiesPanel.show();
+
     this.upgradeTreeUI = new UpgradeTreeUI(
       'game-container',
       this.runManager,
@@ -99,6 +108,7 @@ export class Game {
     this.timeOutScreen = new TimeOutScreen('game-container');
 
     this.setupEventBusMappings();
+    this.setupKeyboardListeners();
 
     const context: GameContext = {
       app: this.app,
@@ -121,7 +131,7 @@ export class Game {
       },
     };
 
-    this.gameLoop = new GameLoop(context);
+    this.gameLoop = new GameLoop(context, this.abilityManager);
     this.setupMouseListeners();
 
     const layout = this.runManager.generateContractLayout(30, GRID_COLS, GRID_ROWS, this.gridEngine);
@@ -174,6 +184,51 @@ export class Game {
 
     EventBus.on('UI_SHOW_UPGRADES', () => {
       this.upgradeTreeUI.show();
+    });
+
+    // Ability activation request from UI
+    EventBus.on('ABILITY_ACTIVATE_REQUEST', (data: { abilityId: string }) => {
+      this.gameLoop.activateAbility(data.abilityId);
+    });
+
+    // Ability unlocked from upgrade purchase
+    EventBus.on('ABILITY_UNLOCKED', (data: { abilityId: string; level: number }) => {
+      this.abilityManager.unlockAbility(data.abilityId, data.level);
+    });
+  }
+
+  private setupKeyboardListeners(): void {
+    window.addEventListener('keydown', (e) => {
+      // Ignore if typing in an input field
+      const activeEl = document.activeElement as HTMLElement | null;
+      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.contentEditable === 'true')) {
+        return;
+      }
+
+      // ESC cancels targeting mode
+      if (e.key === 'Escape') {
+        this.gameLoop.setAbilityTargetingMode('wrecking_ball', false);
+        return;
+      }
+
+      // Ability hotkeys 1-4
+      const keyMap: Record<string, string> = {
+        '1': 'wrecking_ball',
+        '2': 'seismic_slam',
+        '3': 'gravity_well',
+        '4': 'time_dilation',
+      };
+
+      const abilityId = keyMap[e.key];
+      if (abilityId && this.abilityManager.getAbility(abilityId)?.unlocked) {
+        const ability = this.abilityManager.getAbility(abilityId);
+        if (ability && ability.upgradeLevel >= 2 && abilityId === 'wrecking_ball') {
+          // Toggle targeting mode
+          this.gameLoop.setAbilityTargetingMode(abilityId, true);
+        } else {
+          this.gameLoop.activateAbility(abilityId);
+        }
+      }
     });
   }
 

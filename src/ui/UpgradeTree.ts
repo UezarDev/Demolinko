@@ -283,7 +283,10 @@ export class UpgradeTreeUI {
               cost: node.cost,
               title: node.title
             });
-            
+
+            // Direct event for game systems (e.g., ability unlocks)
+            EventBus.emit('UPGRADE_PURCHASED', { upgradeId: node.id });
+
             EventBus.emit('UI_UPDATE_HUD', { cash: this.runManager.getCash(), day: this.runManager.getDay(), remainingTime: this.runManager.contractRemainingTime });
             this.render();
             if (this.onUpgradePurchased) {

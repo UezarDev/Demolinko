@@ -17,6 +17,8 @@
 | **1f**: Fix contract scaling bug (>16) | `88200a2` | 16:18 | Replaced random partition with deterministic greedy algorithm (max rank 16 + remainder) |
 | **1a**: Mock Audio System | `tick-20260612-1754` | 17:54 | New `AudioManager.ts` singleton with typed events, debug logging, volume controls; hooked into 13 game events |
 | **1b**: Pixel Collapse Detection | `tick-20260612-1754` | 17:54 | `PIXEL_COLLAPSE` EventBus event emitted from `damageCell` (hammer) and `runStructuralIntegrityPass` (natural); audio event also emitted |
+| **1c**: Ability Framework + Wrecking Ball | `tick-20260612-1815` | 18:15 | `AbilityManager` with cooldowns, 4 ability slots, keyboard (1-4), upgrade tree integration (3-tier Wrecking Ball: random → targeted → multi-ball), placeholder abilities for future |
+| **1d**: Abilities Panel UI (right side) | `tick-20260612-1815` | 18:15 | Persistent right-side panel with glassmorphic slots, cooldown overlays, key hints (1-4), upgrade level indicators, targeting mode for Wrecking Ball L2+, tooltips, ESC cancel |
 
 ---
 
@@ -30,8 +32,6 @@
 ## Pending (Priority Order — Cron Picks Top Unblocked ⏳)
 | Task | Priority | Blocked By | Notes |
 |------|----------|------------|-------|
-| **1c**: Ability Framework + Wrecking Ball | P2 | 1a, 1d | `AbilityManager`, cooldowns, keyboard (1-4), upgrade tree integration |
-| **1d**: Abilities Panel UI (right side) | P2 | 1c | Persistent panel, cooldown display, key hints |
 | **1e**: Wider View (5 buildings) | P3 | — | `VIEW_WIDTH` in `constants.ts`, layout packing, CSS |
 | **2a**: Balance Config (`balance.ts`) | P4 | — | Extract all magic numbers from engine files |
 | **2b**: Decompose God Files | P4 | 2a | `PhysicsOrchestrator`, `ProgressionOrchestrator`, `UIOrchestrator` |

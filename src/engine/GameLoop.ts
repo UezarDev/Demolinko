@@ -1,13 +1,16 @@
 // src/engine/GameLoop.ts - Game Loop orchestrator that manages update physics iterations, collision detections, drafting states, and rendering steps.
 /*
 Exports:
-- interface GameLoopCallbacks: Decoupled interface for notifying UI handlers about state adjustments.
+- interface GameLoopConfig: Configuration passed to GameLoop constructor.
 - class GameLoop: Driving engine orchestrator for all sandbox steps and day transitions.
-  * constructor(...)
+  * constructor(context: GameContext, abilityManager: AbilityManager)
   * start(): void
   * update(deltaTime: number): void
   * selectDraftCard(cardId: string): void
+  * activateAbility(abilityId: string): void
+  * setAbilityTargetingMode(abilityId: string, active: boolean): void
   * restartRun(): void
+  * restartDay(): void
   * destroy(): void
 */
 
@@ -21,6 +24,7 @@ import { ParticleRenderer } from '../rendering/ParticleRenderer';
 import { GridRenderer } from '../rendering/GridRenderer';
 import { EventBus } from '../core/EventBus';
 import { emitAudioEvent } from './AudioManager';
+import { AbilityManager } from './AbilityManager';
 
 export interface GameLoopConfig {
   viewWidth: number;
@@ -60,6 +64,10 @@ export class GameLoop {
   private cursorCircle: Graphics;
   private cursorCircleFill: Graphics;
 
+  // Ability system
+  private abilityManager: AbilityManager;
+  private abilityTargetingMode: string | null = null; // Currently targeting ability ID
+
   // Active sandbox entities
   private activeParticles: PixelParticle[] = [];
   private currentBudget: number = 30; // Starting contract layout budget
@@ -78,7 +86,8 @@ export class GameLoop {
   private shakeOffsetY: number = 0;
 
   constructor(
-    context: GameContext
+    context: GameContext,
+    abilityManager: AbilityManager
   ) {
     this.app = context.app;
     this.gridEngine = context.gridEngine;
@@ -92,18 +101,35 @@ export class GameLoop {
     this.config = context.config;
     this.cursorCircle = context.cursorCircle;
     this.cursorCircleFill = context.cursorCircleFill;
+    this.abilityManager = abilityManager;
+
+    // Listen for upgrade purchases to unlock abilities
+    EventBus.on('UPGRADE_PURCHASED', (data: { upgradeId: string }) => {
+      this.handleUpgradePurchase(data.upgradeId);
+    });
   }
 
-  /**
-   * Ticker callback registered to the PixiJS ticker.
-   */
+  /** Handle upgrade purchase - unlock abilities when relevant upgrades are bought */
+  private handleUpgradePurchase(upgradeId: string): void {
+    switch (upgradeId) {
+      case 'unlock_wrecking_ball':
+        this.abilityManager.unlockAbility('wrecking_ball', 1);
+        break;
+      case 'wrecking_ball_targeted':
+        this.abilityManager.unlockAbility('wrecking_ball', 2);
+        break;
+      case 'wrecking_ball_multiball':
+        this.abilityManager.unlockAbility('wrecking_ball', 3);
+        break;
+    }
+  }
+
+  /** Ticker callback registered to the PixiJS ticker. */
   private tickerCallback = (ticker: { deltaTime: number }) => {
     this.update(ticker.deltaTime / 60); // Standardizes delta scale to seconds
   };
 
-  /**
-   * Initializes state and registers update tick.
-   */
+  /** Initializes state and registers update tick. */
   public start(): void {
     this.app.stage.visible = true;
     // 1. Vector draw the initial boards
@@ -114,6 +140,7 @@ export class GameLoop {
     this.gridEngine.damageApplied = false;
     this.runManager.isContractTimerActive = false;
     this.runManager.contractRemainingTime = 60.0;
+    this.abilityManager.resetCooldowns();
 
     // 2. Initial HUD draw
     EventBus.emit('UI_UPDATE_HUD', {
@@ -129,19 +156,55 @@ export class GameLoop {
     this.app.ticker.add(this.tickerCallback);
   }
 
-  /**
-   * Tracks current coordinates of player mouse position relative to sandbox grid cells.
-   */
+  /** Tracks current coordinates of player mouse position relative to sandbox grid cells. */
   public setMouseGridPosition(gridX: number, gridY: number, active: boolean): void {
     this.currentGridX = gridX;
     this.currentGridY = gridY;
     this.isMouseOverGrid = active;
+
+    // If in targeting mode, also update the ability manager's target
+    if (this.abilityTargetingMode) {
+      this.abilityManager.setTargetingMode(this.abilityTargetingMode, gridX, gridY);
+    }
   }
 
-  /**
-   * Evaluates update parameters for physics and CA simulation.
-   */
+  /** Activates an ability by ID */
+  public activateAbility(abilityId: string): void {
+    const context = {
+      gridEngine: this.gridEngine,
+      targetX: this.currentGridX,
+      targetY: this.currentGridY,
+      gridCols: this.config.gridCols,
+      gridRows: this.config.gridRows,
+      gridCellSize: this.config.gridCellSize,
+    };
+
+    const success = this.abilityManager.activateAbility(abilityId, context);
+    
+    if (success && this.abilityTargetingMode === abilityId) {
+      this.setAbilityTargetingMode(abilityId, false);
+    }
+  }
+
+  /** Sets targeting mode for click-targeted abilities */
+  public setAbilityTargetingMode(abilityId: string, active: boolean): void {
+    if (active) {
+      this.abilityTargetingMode = abilityId;
+      this.abilityManager.setTargetingMode(abilityId, this.currentGridX, this.currentGridY);
+      // Visual feedback - change cursor
+      document.body.style.cursor = 'crosshair';
+    } else {
+      this.abilityTargetingMode = null;
+      this.abilityManager.clearTargetingMode(abilityId);
+      document.body.style.cursor = 'default';
+    }
+  }
+
+  /** Evaluates update parameters for physics and CA simulation. */
   public update(deltaTime: number): void {
+    // Update ability cooldowns
+    this.abilityManager.update(deltaTime);
+
     if (this.runManager.isDraftActive()) {
       this.cursorCircle.visible = false;
       this.cursorCircleFill.visible = false;
@@ -154,7 +217,7 @@ export class GameLoop {
     const sizeScale = (3 + mods.cursorSize) / 3;
 
     // Manage auto-sledgehammer attack cooldown and animations
-    if (this.isMouseOverGrid) {
+    if (this.isMouseOverGrid && !this.abilityTargetingMode) {
       this.attackCooldown += deltaTime;
       if (this.attackCooldown > cooldownThreshold) {
         this.attackCooldown = cooldownThreshold;
@@ -301,9 +364,7 @@ export class GameLoop {
     });
   }
 
-  /**
-   * Applies selected blueprint upgrade card and progresses simulation state.
-   */
+  /** Applies selected blueprint upgrade card and progresses simulation state. */
   public selectDraftCard(cardId: string): void {
     const cards = this.runManager.getDraftCards();
     const card = cards.find(c => c.id === cardId);
@@ -313,9 +374,7 @@ export class GameLoop {
     }
   }
 
-  /**
-   * Recycles and increments parameters for the next simulation layout.
-   */
+  /** Recycles and increments parameters for the next simulation layout. */
   private progressToNextDay(): void {
     const previousCash = this.runManager.getCash();
     const newDay = this.runManager.getDay() + 1;
@@ -333,6 +392,7 @@ export class GameLoop {
     this.gridEngine.damageApplied = false;
     this.runManager.isContractTimerActive = false;
     this.runManager.contractRemainingTime = 60.0;
+    this.abilityManager.resetCooldowns();
 
     // Reset screen shake
     this.shakeIntensity = 0;
@@ -376,9 +436,7 @@ export class GameLoop {
     this.runManager.setDraftActive(false);
   }
 
-  /** 
-   * Triggers overlay popup state tracking.
-   */
+  /** Triggers overlay popup state tracking. */
   private triggerDraftPhase(): void {
     this.runManager.setDraftActive(true);
     const cards = this.runManager.getDraftCards();
@@ -397,9 +455,7 @@ export class GameLoop {
     });
   }
 
-  /**
-   * Evaluates if any structural pixels remain in the play field.
-   */
+  /** Evaluates if any structural pixels remain in the play field. */
   private checkContractCompletion(): boolean {
     for (let y = 4; y < this.config.gridRows; y++) {
       for (let x = 0; x < this.config.gridCols; x++) {
@@ -412,14 +468,13 @@ export class GameLoop {
     return true;
   }
 
-  /**
-   * Rebuilds the current day layout for a restart after spending cash in the upgrade tree.
-   */
+  /** Rebuilds the current day layout for a restart after spending cash in the upgrade tree. */
   public restartDay(): void {
     // Reset timer and damage applied flags
     this.gridEngine.damageApplied = false;
     this.runManager.isContractTimerActive = false;
     this.runManager.contractRemainingTime = 60.0;
+    this.abilityManager.resetCooldowns();
 
     // Reset screen shake
     this.shakeIntensity = 0;
@@ -462,16 +517,12 @@ export class GameLoop {
     this.runManager.setDraftActive(false);
   }
 
-  /**
-   * Restarts the entire game run.
-   */
+  /** Restarts the entire game run. */
   public restartRun(): void {
     location.reload();
   }
 
-  /**
-   * Detaches listeners and frees graphic layers cleanly.
-   */
+  /** Detaches listeners and frees graphic layers cleanly. */
   public destroy(): void {
     this.app.ticker.remove(this.tickerCallback);
     this.particleRenderer.destroy();
