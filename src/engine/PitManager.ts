@@ -102,7 +102,7 @@ export class PitManager {
   }
 
   /**
-   * Places particle in the corresponding pit based on x-coordinate, applies multipliers, 
+   * Places particle in the corresponding pit based on x-coordinate, applies multipliers,
    * and returns the final payout value, pit index, and description text.
    */
   public collectParticle(p: PixelParticle): { payout: number; pitIndex: number; label: string } {
@@ -117,14 +117,19 @@ export class PitManager {
     }
 
     const matMultiplier = targetPit.scalingBonuses[p.material] || 1.0;
-    const finalPayout = 1; // Strictly locked flat payout to 1 gold per particle regardless of material or pit multipliers
+    const baseMultiplier = targetPit.baseMultiplier || 1.0;
+    const particleValue = p.value || 1;
+
+    // Calculate actual payout: particle value * pit base multiplier * material multiplier
+    const finalPayout = Math.round(particleValue * baseMultiplier * matMultiplier);
 
     // Construct a beautiful descriptive label for display in floaters
     let label = `${p.material}`;
-    if (matMultiplier > 1.5) {
-      label += ` (CRIT ${matMultiplier}x!)`;
-    } else if (matMultiplier < 0.5) {
-      label += ` (PENALTY ${matMultiplier}x)`;
+    const totalMultiplier = baseMultiplier * matMultiplier;
+    if (totalMultiplier > 1.5) {
+      label += ` (CRIT ${totalMultiplier.toFixed(1)}x!)`;
+    } else if (totalMultiplier < 0.5) {
+      label += ` (PENALTY ${totalMultiplier.toFixed(1)}x)`;
     }
 
     return {
@@ -167,4 +172,3 @@ export class PitManager {
     }
   }
 }
-
