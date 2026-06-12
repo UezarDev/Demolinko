@@ -14,12 +14,7 @@ import { TimeOutScreen } from '../ui/TimeOutScreen';
 import { AudioManager } from '../engine/AudioManager';
 import { AbilityManager } from '../engine/AbilityManager';
 import { AbilitiesPanel } from '../ui/AbilitiesPanel';
-
-const VIEW_WIDTH = 800;
-const VIEW_HEIGHT = 900;
-const GRID_CELL_SIZE = 4;
-const GRID_COLS = VIEW_WIDTH / GRID_CELL_SIZE;
-const GRID_ROWS = 100;
+import { VIEW_WIDTH, VIEW_HEIGHT, GRID_CELL_SIZE, GRID_COLS, GRID_ROWS } from '../config/constants';
 
 export class Game {
   private app!: Application;
