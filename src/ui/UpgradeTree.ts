@@ -112,14 +112,14 @@ export class UpgradeTreeUI {
   }
 
   /**
-   * Evaluates if there are unspent available upgrades that the player can afford.
+   * Evaluates if there are any revealed but unpurchased upgrades (regardless of affordability).
+   * Used for informational display only - does NOT block progression.
    */
-  private canAffordAnyUpgrade(): boolean {
-    const cash = this.runManager.getCash();
+  private hasRevealedUnpurchasedUpgrades(): boolean {
     for (const node of UPGRADE_TREE) {
       const isPurchased = this.runManager.activeUpgrades.includes(node.id);
       const isRevealed = node.requires.length === 0 || node.requires.some(reqId => this.runManager.activeUpgrades.includes(reqId));
-      if (isRevealed && !isPurchased && cash >= node.cost) {
+      if (isRevealed && !isPurchased) {
         return true;
       }
     }
@@ -354,19 +354,20 @@ export class UpgradeTreeUI {
   }
 
   /**
-   * Dynamically disables or enables the Restart button based on affordable upgrade availability.
+   * Updates the Restart button state - always enabled for player agency.
+   * Shows a subtle hint if there are revealed but unpurchased upgrades.
    */
   private updateRestartButtonState(): void {
     const restartBtn = document.getElementById('tree-restart-btn') as HTMLButtonElement;
     if (!restartBtn) return;
 
-    const hasAffordableUpgrades = this.canAffordAnyUpgrade();
-    if (hasAffordableUpgrades) {
-      restartBtn.disabled = true;
-      restartBtn.className = 'btn-restart-day locked';
-      restartBtn.innerText = 'Purchase Available Upgrades First';
+    const hasUnpurchasedRevealed = this.hasRevealedUnpurchasedUpgrades();
+    
+    restartBtn.disabled = false;
+    if (hasUnpurchasedRevealed) {
+      restartBtn.className = 'btn-restart-day ready';
+      restartBtn.innerText = 'Start Next Day (Upgrades Available)';
     } else {
-      restartBtn.disabled = false;
       restartBtn.className = 'btn-restart-day ready';
       restartBtn.innerText = 'Start Next Day';
     }
