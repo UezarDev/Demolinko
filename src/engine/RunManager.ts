@@ -241,7 +241,9 @@ export class RunManager {
   /**
    * Generates a list of building ranks that sum up to the target difficulty.
    * For difficulty <= 16, it simply returns the single rank.
-   * For difficulty > 16, it randomly partitions the difficulty into ranks between 1 and 16.
+   * For difficulty > 16, it deterministically picks the maximum rank (16) as many
+   * times as possible, then uses the remainder as the final rank. This avoids the
+   * unpredictability of random partitioning and ensures consistent contract layouts.
    */
   private solveDifficultySum(target: number): number[] {
     if (target <= 16) {
@@ -251,12 +253,15 @@ export class RunManager {
     const ranks: number[] = [];
     let remaining = target;
 
-    while (remaining > 0) {
-      // Pick a random rank between 1 and 16, but don't exceed remaining
-      const maxPossible = Math.min(16, remaining);
-      const rank = Math.floor(Math.random() * maxPossible) + 1;
-      ranks.push(rank);
-      remaining -= rank;
+    // Greedily use max rank (16) to minimize building count and ensure predictability
+    while (remaining > 16) {
+      ranks.push(16);
+      remaining -= 16;
+    }
+
+    // Add the remainder (guaranteed to be 1-16)
+    if (remaining > 0) {
+      ranks.push(remaining);
     }
 
     return ranks;
