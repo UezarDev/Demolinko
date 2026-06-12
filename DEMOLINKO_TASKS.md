@@ -14,7 +14,7 @@
 | Fix payout system (pit multipliers) | `2e94bfc` → `2cc68f2` | 13:03–14:59 | Hardcoded `finalPayout=1` → proper `particle.value * pit.baseMultiplier * materialMultiplier` |
 | Fix 10× inflated upgrade costs | `e575497` | 14:56 | All 15 nodes divided by 10 |
 | Remove forced upgrade purchase blocker | `0cb6591` | 13:42 | "Start Next Day" always enabled, shows hint |
-| **1f**: Fix contract scaling bug (>16) | `tick-$(date +%Y%m%d-%H%M)` | $(date +%H:%M) | Replaced random partition with deterministic greedy algorithm (max rank 16 + remainder) |
+| **1f**: Fix contract scaling bug (>16) | `88200a2` | 16:18 | Replaced random partition with deterministic greedy algorithm (max rank 16 + remainder) |
 
 ---
 
