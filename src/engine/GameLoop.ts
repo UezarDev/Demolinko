@@ -20,6 +20,7 @@ import { RunManager } from './RunManager';
 import { ParticleRenderer } from '../rendering/ParticleRenderer';
 import { GridRenderer } from '../rendering/GridRenderer';
 import { EventBus } from '../core/EventBus';
+import { emitAudioEvent } from './AudioManager';
 
 export interface GameLoopConfig {
   viewWidth: number;
@@ -165,6 +166,13 @@ export class GameLoop {
       if (this.attackCooldown >= cooldownThreshold) {
         // Trigger automatic damage hit covering size & damage upgrades
         this.gridEngine.damageArea(this.currentGridX, this.currentGridY, 3 + mods.cursorSize, 10 + mods.cursorDamage);
+        // Audio: Hammer hit
+        emitAudioEvent('HAMMER_HIT', {
+          x: this.currentGridX,
+          y: this.currentGridY,
+          radius: 3 + mods.cursorSize,
+          damage: 10 + mods.cursorDamage
+        });
         this.attackCooldown = 0.0;
         this.cursorCircleFill.scale.set(0.0);
         // Briefly pop outer circle for impact feedback
@@ -213,6 +221,12 @@ export class GameLoop {
         this.runManager.contractRemainingTime = 0;
         this.runManager.isContractTimerActive = false;
         
+        // Audio: Game Over
+        emitAudioEvent('GAME_OVER', {
+          day: this.runManager.getDay(),
+          finalCash: this.runManager.getCash()
+        });
+
         // Trigger Upgrade Tree Overlay on Contract Failure
         this.runManager.setDraftActive(true);
         this.runManager.persist();
@@ -238,6 +252,19 @@ export class GameLoop {
         const results = this.pitManager.collectParticle(p);
         this.runManager.addCash(results.payout);
         
+        // Audio: Pit collection
+        const totalMultiplier = (results as any).multiplier || 1.0; // baseMultiplier * matMultiplier
+        const isCrit = totalMultiplier > 1.5;
+        const isPenalty = totalMultiplier < 0.5;
+        emitAudioEvent('PIT_COLLECT', {
+          material: p.material,
+          payout: results.payout,
+          multiplier: totalMultiplier,
+          pitIndex: results.pitIndex,
+          isCrit,
+          isPenalty
+        });
+
         // Notify HUD overlay of score gains
         EventBus.emit('UI_UPDATE_HUD', {
           cash: this.runManager.getCash(),
@@ -290,9 +317,18 @@ export class GameLoop {
    * Recycles and increments parameters for the next simulation layout.
    */
   private progressToNextDay(): void {
+    const previousCash = this.runManager.getCash();
+    const newDay = this.runManager.getDay() + 1;
+    
     // Complete the Day transition
     this.runManager.progressDay();
     
+    // Audio: Day complete
+    emitAudioEvent('DAY_COMPLETE', {
+      newDay,
+      previousCash
+    });
+
     // Reset timer and damage applied flags
     this.gridEngine.damageApplied = false;
     this.runManager.isContractTimerActive = false;
@@ -340,13 +376,20 @@ export class GameLoop {
     this.runManager.setDraftActive(false);
   }
 
-  /**
+  /** 
    * Triggers overlay popup state tracking.
    */
   private triggerDraftPhase(): void {
     this.runManager.setDraftActive(true);
     const cards = this.runManager.getDraftCards();
     
+    // Audio: Draft phase shown
+    emitAudioEvent('DRAFT_SHOWN', {
+      day: this.runManager.getDay(),
+      isGameOver: false,
+      cardCount: cards.length
+    });
+
     EventBus.emit('UI_SHOW_DRAFT', {
       isGameOver: false,
       currentDay: this.runManager.getDay(),

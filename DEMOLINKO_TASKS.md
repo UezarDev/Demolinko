@@ -15,6 +15,8 @@
 | Fix 10× inflated upgrade costs | `e575497` | 14:56 | All 15 nodes divided by 10 |
 | Remove forced upgrade purchase blocker | `0cb6591` | 13:42 | "Start Next Day" always enabled, shows hint |
 | **1f**: Fix contract scaling bug (>16) | `88200a2` | 16:18 | Replaced random partition with deterministic greedy algorithm (max rank 16 + remainder) |
+| **1a**: Mock Audio System | `tick-20260612-1754` | 17:54 | New `AudioManager.ts` singleton with typed events, debug logging, volume controls; hooked into 13 game events |
+| **1b**: Pixel Collapse Detection | `tick-20260612-1754` | 17:54 | `PIXEL_COLLAPSE` EventBus event emitted from `damageCell` (hammer) and `runStructuralIntegrityPass` (natural); audio event also emitted |
 
 ---
 
@@ -28,8 +30,6 @@
 ## Pending (Priority Order — Cron Picks Top Unblocked ⏳)
 | Task | Priority | Blocked By | Notes |
 |------|----------|------------|-------|
-| **1a**: Mock Audio System | P1 | — | New `AudioManager.ts` with stubbed `play(id, vol, pitch)`; hook into existing events |
-| **1b**: Pixel Collapse Detection | P1 | — | Emit `COLLAPSE_EVENT` from `GridEngine.damageArea()` / `update()` with `{pixelCount, material, pos}` |
 | **1c**: Ability Framework + Wrecking Ball | P2 | 1a, 1d | `AbilityManager`, cooldowns, keyboard (1-4), upgrade tree integration |
 | **1d**: Abilities Panel UI (right side) | P2 | 1c | Persistent panel, cooldown display, key hints |
 | **1e**: Wider View (5 buildings) | P3 | — | `VIEW_WIDTH` in `constants.ts`, layout packing, CSS |

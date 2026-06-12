@@ -10,6 +10,7 @@ Exports:
 */
 
 import { EventBus } from '../core/EventBus';
+import { emitAudioEvent } from '../engine/AudioManager';
 
 export interface UIDraftCard {
   id: string;
@@ -131,6 +132,9 @@ export class UIManager {
       retryBtn.innerText = 'Restart Run';
       retryBtn.style.marginTop = '20px';
       retryBtn.onclick = () => {
+        // Audio: UI button click
+        emitAudioEvent('UI_BUTTON_CLICK', { action: 'restart_run' });
+        
         EventBus.emit('GAME_RESTART_RUN');
       };
       this.cardContainer.appendChild(retryBtn);
@@ -159,6 +163,13 @@ export class UIManager {
       `;
 
       cardEl.onclick = () => {
+        // Audio: Draft card selected
+        emitAudioEvent('DRAFT_SELECTED', {
+          cardId: card.id,
+          cardTitle: card.title,
+          rarity: card.rarity
+        });
+        
         EventBus.emit('GAME_DRAFT_SELECTED', card.id);
       };
 

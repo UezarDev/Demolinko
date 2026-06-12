@@ -1,6 +1,7 @@
 import { Graphics } from 'pixi.js';
 import { Peg, PegType, PixelParticle, MaterialType, MAX_SPLIT_DEPTH } from '../types/game';
 import { ParticlePool } from './ParticlePool';
+import { emitAudioEvent } from './AudioManager';
 
 export class PlinkoBoard {
   private width: number;
@@ -157,6 +158,15 @@ export class PlinkoBoard {
               // Juice: Bounce effect
               peg.scale = 1.2;
 
+              // Audio: Peg bounce
+              const velocity = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+              emitAudioEvent('PEG_BOUNCE', {
+                pegType: peg.type,
+                pegLevel: peg.level,
+                material: p.material,
+                velocity
+              });
+
               this.executePegHooks(peg, p, nx, ny, clonedParticles);
             }
           }
@@ -184,6 +194,7 @@ export class PlinkoBoard {
             p.splitCount++;
             p.lastSplitPegId = peg.id;
             const splitVal = Math.max(1, Math.floor(p.value / 2));
+            const parentValue = p.value;
             p.value = splitVal;
             const cloneX = peg.x - nx * this.collisionDist;
             const cloneY = peg.y - ny * this.collisionDist;
@@ -202,14 +213,29 @@ export class PlinkoBoard {
               clone.lastSplitPegId = p.lastSplitPegId;
               clonedParticles.push(clone);
             }
+
+            // Audio: Particle split
+            emitAudioEvent('PARTICLE_SPLIT', {
+              parentValue,
+              cloneValue: splitVal,
+              splitCount: p.splitCount
+            });
           }
           break;
         case PegType.ALCHEMIST:
           if (p.material !== MaterialType.CHAOS && Math.random() < 0.05 + (peg.level * 0.01)) {
+            const fromMaterial = p.material;
             p.material = MaterialType.CHAOS;
             p.color = 0xd946ef;
             p.value *= 2;
             p.appliedEffects.push('CHAOS_ALCHEMIZED');
+
+            // Audio: Material transmute
+            emitAudioEvent('MATERIAL_TRANSMUTE', {
+              fromMaterial,
+              toMaterial: MaterialType.CHAOS,
+              newValue: p.value
+            });
           }
           p.value += 2 * peg.level * peg.multiplier;
           break;

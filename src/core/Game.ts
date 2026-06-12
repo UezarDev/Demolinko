@@ -11,6 +11,7 @@ import { EventBus } from './EventBus';
 import { MainMenu } from '../ui/MainMenu';
 import { UpgradeTreeUI } from '../ui/UpgradeTree';
 import { TimeOutScreen } from '../ui/TimeOutScreen';
+import { AudioManager } from '../engine/AudioManager';
 
 const VIEW_WIDTH = 800;
 const VIEW_HEIGHT = 900;
@@ -84,6 +85,9 @@ export class Game {
 
     this.uiManager = new UIManager('game-container');
     this.uiManager.setupHUDAndOverlays();
+
+    // Initialize AudioManager
+    AudioManager.getInstance().init({ debugLog: true });
 
     this.upgradeTreeUI = new UpgradeTreeUI(
       'game-container',

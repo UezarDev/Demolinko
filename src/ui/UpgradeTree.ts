@@ -3,6 +3,7 @@ import { EventBus } from "../core/EventBus";
 import { UPGRADE_TREE } from '../config/upgrades';
 import { RunManager } from '../engine/RunManager';
 import { PlinkoBoard } from '../engine/PlinkoBoard';
+import { emitAudioEvent } from '../engine/AudioManager';
 
 export class UpgradeTreeUI {
   private containerId: string;
@@ -276,6 +277,13 @@ export class UpgradeTreeUI {
 
         cardEl.onclick = () => {
           if (this.runManager.purchaseUpgrade(node.id, this.plinkoBoard)) {
+            // Audio: Upgrade purchased
+            emitAudioEvent('UPGRADE_PURCHASED', {
+              upgradeId: node.id,
+              cost: node.cost,
+              title: node.title
+            });
+            
             EventBus.emit('UI_UPDATE_HUD', { cash: this.runManager.getCash(), day: this.runManager.getDay(), remainingTime: this.runManager.contractRemainingTime });
             this.render();
             if (this.onUpgradePurchased) {
