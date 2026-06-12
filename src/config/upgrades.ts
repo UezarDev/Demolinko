@@ -66,7 +66,7 @@ export const UPGRADE_TREE: UpgradeNode[] = [
     title: 'Plinko balls spawning speed +10%',
     description: 'Increases gravity sand decay on the floor by 10%, speeding up the ball generation cycle.',
     icon: '⚡',
-    cost: 200, // 10x Inflated Cost (was 20)
+    cost: 20, // 10x Inflated Cost fixed (was 200)
     pos: { x: 400, y: 300 },
     requires: [],
     effect: { plinkoSpeed: 0.1 },
@@ -80,7 +80,7 @@ export const UPGRADE_TREE: UpgradeNode[] = [
     title: 'Sledge Damage I',
     description: 'Increases automatic cursor hit damage by +5.',
     icon: '💥',
-    cost: 350, // 10x Inflated Cost (was 35)
+    cost: 35, // 10x Inflated Cost fixed (was 350)
     pos: { x: 250, y: 300 },
     requires: ['base_speed'],
     effect: { cursorDamage: 5 },
@@ -90,7 +90,7 @@ export const UPGRADE_TREE: UpgradeNode[] = [
     title: 'Sledge Damage II',
     description: 'Increases automatic cursor hit damage by an additional +10.',
     icon: '🔱',
-    cost: 750, // 10x Inflated Cost (was 75)
+    cost: 75, // 10x Inflated Cost fixed (was 750)
     pos: { x: 100, y: 300 },
     requires: ['cursor_damage_1'],
     effect: { cursorDamage: 10 },
@@ -104,7 +104,7 @@ export const UPGRADE_TREE: UpgradeNode[] = [
     title: 'Sledge Radius I',
     description: 'Increases the hammer demolition strike radius by +1 unit.',
     icon: '🔮',
-    cost: 300, // 10x Inflated Cost (was 30)
+    cost: 30, // 10x Inflated Cost fixed (was 300)
     pos: { x: 250, y: 450 },
     requires: ['base_speed'],
     effect: { cursorSize: 1 },
@@ -114,7 +114,7 @@ export const UPGRADE_TREE: UpgradeNode[] = [
     title: 'Sledge Radius II',
     description: 'Increases the hammer strike radius by an additional +1 unit.',
     icon: '🌟',
-    cost: 650, // 10x Inflated Cost (was 65)
+    cost: 65, // 10x Inflated Cost fixed (was 650)
     pos: { x: 100, y: 450 },
     requires: ['cursor_size_1'],
     effect: { cursorSize: 1 },
@@ -128,7 +128,7 @@ export const UPGRADE_TREE: UpgradeNode[] = [
     title: 'Unlock Bouncers',
     description: 'Enables high-impulse Bouncer pegs! Transmutes 3 existing Normal pegs on your board into Bouncers.',
     icon: '🌀',
-    cost: 400, // 10x Inflated Cost (was 40)
+    cost: 40, // 10x Inflated Cost fixed (was 400)
     pos: { x: 400, y: 150 },
     requires: ['base_speed'],
     effect: { unlockBouncers: true },
@@ -138,7 +138,7 @@ export const UPGRADE_TREE: UpgradeNode[] = [
     title: 'Unlock Splitters',
     description: 'Enables particle-duplicating Splitters! Transmutes 3 existing Normal pegs into Splitters.',
     icon: '💠',
-    cost: 800, // 10x Inflated Cost (was 80)
+    cost: 80, // 10x Inflated Cost fixed (was 800)
     pos: { x: 550, y: 150 },
     requires: ['unlock_bouncer'],
     effect: { unlockSplitters: true },
@@ -148,7 +148,7 @@ export const UPGRADE_TREE: UpgradeNode[] = [
     title: 'Unlock Alchemists',
     description: 'Enables transmutation-capable Alchemists! Transmutes 2 existing Normal pegs into Alchemists.',
     icon: '🧪',
-    cost: 1500, // 10x Inflated Cost (was 150)
+    cost: 150, // 10x Inflated Cost fixed (was 1500)
     pos: { x: 700, y: 150 },
     requires: ['unlock_splitter'],
     effect: { unlockAlchemists: true },
@@ -162,7 +162,7 @@ export const UPGRADE_TREE: UpgradeNode[] = [
     title: 'Plinko Speed II',
     description: 'Further decreases sand ground decay by 0.15 seconds, spawning balls at a higher frequency.',
     icon: '🌪️',
-    cost: 500, // 10x Inflated Cost (was 50)
+    cost: 50, // 10x Inflated Cost fixed (was 500)
     pos: { x: 550, y: 300 },
     requires: ['base_speed'],
     effect: { plinkoSpeed: 0.15 },
@@ -172,7 +172,7 @@ export const UPGRADE_TREE: UpgradeNode[] = [
     title: 'Plinko Speed III',
     description: 'Decreases sand ground decay by an additional 0.20 seconds.',
     icon: '☄️',
-    cost: 1000, // 10x Inflated Cost (was 100)
+    cost: 100, // 10x Inflated Cost fixed (was 1000)
     pos: { x: 700, y: 300 },
     requires: ['plinko_speed_2'],
     effect: { plinkoSpeed: 0.20 },
@@ -186,7 +186,7 @@ export const UPGRADE_TREE: UpgradeNode[] = [
     title: 'Sledge Cooldown I',
     description: 'Swings the automatic sledgehammer 15% faster.',
     icon: '⚙️',
-    cost: 450, // 10x Inflated Cost (was 45)
+    cost: 45, // 10x Inflated Cost fixed (was 450)
     pos: { x: 400, y: 450 },
     requires: ['base_speed'],
     effect: { cursorSpeed: 0.15 },
@@ -196,7 +196,7 @@ export const UPGRADE_TREE: UpgradeNode[] = [
     title: 'Sledge Cooldown II',
     description: 'Swings the automatic sledgehammer an additional 20% faster.',
     icon: '🚀',
-    cost: 950, // 10x Inflated Cost (was 95)
+    cost: 95, // 10x Inflated Cost fixed (was 950)
     pos: { x: 550, y: 450 },
     requires: ['cursor_speed_1'],
     effect: { cursorSpeed: 0.20 },
