@@ -3,13 +3,17 @@ import { EventBus } from "../core/EventBus";
 import { UPGRADE_TREE } from '../config/upgrades';
 import { RunManager } from '../engine/RunManager';
 import { PlinkoBoard } from '../engine/PlinkoBoard';
+import { UIScreen } from './UIScreen';
 
-export class UpgradeTreeUI {
+export class UpgradeTreeUI implements UIScreen {
+  public readonly id = 'upgrade-tree';
   private containerId: string;
   private runManager: RunManager;
   private plinkoBoard: PlinkoBoard;
   private onRestartDay: () => void;
+  private onRetryDay: () => void;
   private onUpgradePurchased?: () => void;
+  private context: 'SUCCESS' | 'FAILURE' = 'SUCCESS';
 
   private overlayEl: HTMLElement | null = null;
   private contentEl: HTMLElement | null = null;
@@ -23,25 +27,36 @@ export class UpgradeTreeUI {
   private panY: number = 100; // Centered offset initial state
 
   constructor(
-    containerId: string,
+    containerId: string = 'ui-root',
     runManager: RunManager,
     plinkoBoard: PlinkoBoard,
     onRestartDay: () => void,
+    onRetryDay: () => void,
     onUpgradePurchased?: () => void
   ) {
     this.containerId = containerId;
     this.runManager = runManager;
     this.plinkoBoard = plinkoBoard;
     this.onRestartDay = onRestartDay;
+    this.onRetryDay = onRetryDay;
     this.onUpgradePurchased = onUpgradePurchased;
+  }
+
+  /**
+   * Sets the context for this screen (SUCCESS = won day, FAILURE = lost day).
+   * Determines whether "Start Next Day" advances or retries the day.
+   */
+  public setContext(context: 'SUCCESS' | 'FAILURE'): void {
+    this.context = context;
   }
 
   /**
    * Initializes and presents the fullscreen Upgrade Tree overlay in the DOM.
    */
-  public show(): void {
+  public show(data?: any): void {
     const parent = document.getElementById(this.containerId);
     if (!parent) return;
+
 
     // Check if the overlay already exists, else create it
     this.overlayEl = document.getElementById('upgrade-tree-overlay');
@@ -106,9 +121,14 @@ export class UpgradeTreeUI {
     if (restartBtn) {
             restartBtn.onclick = () => {
         this.hide();
-        this.onRestartDay();
+        if (this.context === 'FAILURE') {
+          this.onRetryDay();
+        } else {
+          this.onRestartDay();
+        }
       };
     }
+    this.updateRestartButtonState();
   }
 
   /**
@@ -356,6 +376,7 @@ export class UpgradeTreeUI {
   /**
    * Updates the Restart button state - always enabled for player agency.
    * Shows a subtle hint if there are revealed but unpurchased upgrades.
+   * Button text changes based on context (SUCCESS = next day, FAILURE = retry day).
    */
   private updateRestartButtonState(): void {
     const restartBtn = document.getElementById('tree-restart-btn') as HTMLButtonElement;
@@ -364,12 +385,14 @@ export class UpgradeTreeUI {
     const hasUnpurchasedRevealed = this.hasRevealedUnpurchasedUpgrades();
     
     restartBtn.disabled = false;
+    const baseText = this.context === 'FAILURE' ? 'Retry Day' : 'Start Next Day';
+    
     if (hasUnpurchasedRevealed) {
       restartBtn.className = 'btn-restart-day ready';
-      restartBtn.innerText = 'Start Next Day (Upgrades Available)';
+      restartBtn.innerText = `${baseText} (Upgrades Available)`;
     } else {
       restartBtn.className = 'btn-restart-day ready';
-      restartBtn.innerText = 'Start Next Day';
+      restartBtn.innerText = baseText;
     }
   }
 }

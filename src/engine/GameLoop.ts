@@ -1,8 +1,8 @@
 // src/engine/GameLoop.ts - Game Loop orchestrator that manages update physics iterations, collision detections, drafting states, and rendering steps.
 /*
 Exports:
-- interface GameLoopCallbacks: Decoupled interface for notifying UI handlers about state adjustments.
-- class GameLoop: Driving engine orchestrator for all sandbox steps and day transitions.
+|- interface GameLoopCallbacks: Decoupled interface for notifying UI handlers about state adjustments.
+|- class GameLoop: Driving engine orchestrator for all sandbox steps and day transitions.
   * constructor(...)
   * start(): void
   * update(deltaTime: number): void
@@ -55,11 +55,11 @@ export class GameLoop {
 
   private pegGraphics: Graphics;
   private pitGraphics: Graphics;
-  private config: GameLoopConfig;
   private cursorCircle: Graphics;
   private cursorCircleFill: Graphics;
+  private config: GameLoopConfig;
+  public isPaused: boolean = false;
 
-  // Active sandbox entities
   private activeParticles: PixelParticle[] = [];
   private currentBudget: number = 30; // Starting contract layout budget
 
@@ -141,8 +141,9 @@ export class GameLoop {
    * Evaluates update parameters for physics and CA simulation.
    */
   public update(deltaTime: number): void {
-    if (this.runManager.isDraftActive()) {
-      this.cursorCircle.visible = false;
+      if (this.isPaused) return;
+      if (this.runManager.isDraftActive()) {
+        this.cursorCircle.visible = false;
       this.cursorCircleFill.visible = false;
       return;
     }
@@ -278,18 +279,22 @@ export class GameLoop {
    * Applies selected blueprint upgrade card and progresses simulation state.
    */
   public selectDraftCard(cardId: string): void {
-    const cards = this.runManager.getDraftCards();
-    const card = cards.find(c => c.id === cardId);
-    if (card) {
-      this.runManager.applyDraftSelection(card, this.plinkoBoard, this.pitManager);
-      this.progressToNextDay();
+      const cards = this.runManager.getDraftCards();
+      const card = cards.find(c => c.id === cardId);
+      if (card) {
+        this.runManager.applyDraftSelection(card, this.plinkoBoard, this.pitManager);
+      }
+
+      // Guarantee the transition to the decision screen regardless of lookup
+      EventBus.emit('UI_HIDE_DRAFT');
+      this.app.stage.visible = false; // Pause world view
+      EventBus.emit('UI_SHOW_POST_DRAFT_CHOICE', { day: this.runManager.getDay() });
     }
-  }
 
   /**
    * Recycles and increments parameters for the next simulation layout.
    */
-  private progressToNextDay(): void {
+  public progressToNextDay(): void {
     // Complete the Day transition
     this.runManager.progressDay();
     
@@ -332,6 +337,9 @@ export class GameLoop {
       this.gridEngine
     );
     this.gridRenderer.updateTint(layout.hueTint);
+    
+    // Render the new building immediately so it's visible when stage shows
+    this.gridRenderer.render();
 
     // Reset particles and wipe renderer sprites
     this.activeParticles = [];
@@ -426,9 +434,10 @@ export class GameLoop {
     location.reload();
   }
 
-  /**
-   * Detaches listeners and frees graphic layers cleanly.
-   */
+  public togglePause(): void {
+    this.isPaused = !this.isPaused;
+  }
+
   public destroy(): void {
     this.app.ticker.remove(this.tickerCallback);
     this.particleRenderer.destroy();

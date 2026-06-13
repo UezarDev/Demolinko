@@ -54,7 +54,38 @@ body {
   flex-direction: column;
 }
 
-/* Slick HUD / UI elements */
+/* Config Button Style */
+.btn-config {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  pointer-events: auto;
+  z-index: 1000;
+}
+
+.btn-config:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
+}
+
+.btn-config:active {
+  transform: scale(0.95);
+}
+
 .hud-overlay {
   position: absolute;
   top: 16px;
@@ -80,6 +111,15 @@ body {
   pointer-events: auto;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
+
+.hud-panel-small {
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
 
 .hud-label {
   font-size: 0.75rem;
@@ -147,18 +187,27 @@ body {
   transform: translateY(1px);
 }
 
-/* Draft Overlay */
-.overlay-screen {
-  position: absolute;
+/* Shared UI Backdrop for blurring the game world */
+.ui-blur-backdrop {
+  position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(11, 15, 25, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: 150;
+  pointer-events: none;
+}
+
+/* Draft Overlay & Decision Modal - now Fullscreen */
+.overlay-screen {
+  position: fixed;
+  inset: 0;
+  background: transparent; 
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  z-index: 100;
+  z-index: 300;
   padding: 40px;
   animation: fadeIn 0.3s ease-out;
 }
@@ -261,14 +310,14 @@ body {
    UPGRADE TREE OVERLAY & VIEWPORT
    ========================================== */
 .upgrade-tree-overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
   background: rgba(11, 15, 25, 0.9);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
-  z-index: 100;
+  z-index: 200;
   animation: fadeIn 0.3s ease-out;
   overflow: hidden;
   user-select: none;
@@ -576,7 +625,7 @@ body {
 
 /* Main Menu Screen Overlay */
 .main-menu-overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
   background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
   display: flex;
@@ -728,7 +777,7 @@ body {
 
 /* Time Out Decision Hub Screen Overlay */
 .timeout-overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
   background: rgba(2, 6, 23, 0.85);
   backdrop-filter: blur(12px);
@@ -736,7 +785,7 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  z-index: 150;
+  z-index: 200;
   animation: fadeIn 0.3s ease-out;
 }
 .timeout-panel {

@@ -1,15 +1,17 @@
 // src/ui/TimeOutScreen.ts - Dynamic intermediate "Time Out" Decision Hub screen.
 import { EventBus } from '../core/EventBus';
+import { UIScreen } from './UIScreen';
 
-export class TimeOutScreen {
+export class TimeOutScreen implements UIScreen {
+  public readonly id = 'timeout';
   private containerId: string;
   private overlayEl: HTMLElement | null = null;
 
-  constructor(containerId: string) {
+  constructor(containerId: string = 'ui-root') {
     this.containerId = containerId;
   }
 
-  public show(day: number, earnedCash: number): void {
+  public show(data?: any): void {
     const parent = document.getElementById(this.containerId);
     if (!parent) return;
 
@@ -22,7 +24,7 @@ export class TimeOutScreen {
     }
 
     this.overlayEl.style.display = 'flex';
-    this.render(day, earnedCash);
+    this.render(data?.day, data?.earnedCash);
   }
 
   public hide(): void {
@@ -75,7 +77,7 @@ export class TimeOutScreen {
     if (upgradeBtn) {
       upgradeBtn.onclick = () => {
         this.hide();
-        EventBus.emit('UI_SHOW_UPGRADES');
+        EventBus.emit('UI_SHOW_UPGRADES', { mode: 'FAILURE' });
       };
     }
 

@@ -7,10 +7,14 @@ import { UIManager } from '../ui/UIManager';
 import { ParticleRenderer } from '../rendering/ParticleRenderer';
 import { GridRenderer } from '../rendering/GridRenderer';
 import { GameLoop, GameContext } from '../engine/GameLoop';
-import { EventBus } from './EventBus';
+import { EventBus } from '../core/EventBus';
 import { MainMenu } from '../ui/MainMenu';
 import { UpgradeTreeUI } from '../ui/UpgradeTree';
 import { TimeOutScreen } from '../ui/TimeOutScreen';
+import { DraftOverlay } from '../ui/DraftOverlay';
+import { PostDraftOverlay } from '../ui/PostDraftOverlay';
+import { SettingsModal } from '../ui/SettingsModal';
+import { InGameMenu } from '../ui/InGameMenu';
 
 const VIEW_WIDTH = 800;
 const VIEW_HEIGHT = 900;
@@ -28,11 +32,13 @@ export class Game {
   private particleRenderer!: ParticleRenderer;
   private gridRenderer!: GridRenderer;
   private gameLoop!: GameLoop;
-  private pegGraphics!: Graphics;
   private cursorCircle!: Graphics;
   private cursorCircleFill!: Graphics;
   private upgradeTreeUI!: UpgradeTreeUI;
   private timeOutScreen!: TimeOutScreen;
+  private settingsModal!: SettingsModal;
+  private inGameMenu!: InGameMenu;
+  private lastScreenBeforeSettings: string | null = null;
 
   public async bootstrap(): Promise<void> {
     TextureStyle.defaultOptions.scaleMode = 'nearest';
@@ -52,7 +58,6 @@ export class Game {
     }
 
     this.gridEngine = new DemolitionGrid(GRID_COLS, GRID_ROWS);
-    await this.gridEngine.loadSpriteSheet('public/buildings.png');
     this.plinkoBoard = new PlinkoBoard(VIEW_WIDTH, VIEW_HEIGHT, GRID_ROWS * GRID_CELL_SIZE);
     this.pitManager = new PitManager(VIEW_WIDTH, VIEW_HEIGHT, 40);
     this.runManager = new RunManager();
@@ -71,7 +76,6 @@ export class Game {
     const dmgRadius = 3;
     this.cursorCircleFill = new Graphics();
     this.cursorCircleFill.circle(0, 0, dmgRadius * GRID_CELL_SIZE);
-    this.cursorCircleFill.circle(0, 0, dmgRadius * GRID_CELL_SIZE);
     this.cursorCircleFill.fill({ color: 0xffffff, alpha: 0.2 });
     this.cursorCircleFill.visible = false;
     this.app.stage.addChild(this.cursorCircleFill);
@@ -84,15 +88,32 @@ export class Game {
 
     this.uiManager = new UIManager('game-container');
     this.uiManager.setupHUDAndOverlays();
-
+    
+    // Register screens with UIManager's internal ScreenManager
+    this.uiManager.registerScreens(
+      new DraftOverlay('ui-root'), 
+      new PostDraftOverlay('ui-root')
+    );
+    this.settingsModal = new SettingsModal('ui-root');
+    this.timeOutScreen = new TimeOutScreen('ui-root');
     this.upgradeTreeUI = new UpgradeTreeUI(
-      'game-container',
+      'ui-root',
       this.runManager,
       this.plinkoBoard,
-      () => this.gameLoop?.restartDay(),
-      () => this.plinkoBoard?.render(this.pegGraphics)
+      () => EventBus.emit('GAME_NEXT_DAY'),
+      () => EventBus.emit('GAME_RETRY_DAY'),
+      () => this.plinkoBoard?.render(pegGraphics)
     );
-    this.timeOutScreen = new TimeOutScreen('game-container');
+    this.inGameMenu = new InGameMenu('ui-root');
+    
+    // Register all remaining screens to the manager
+    this.uiManager.screenManager.registerScreen(this.settingsModal);
+    this.uiManager.screenManager.registerScreen(this.timeOutScreen);
+    this.uiManager.screenManager.registerScreen(this.upgradeTreeUI);
+    this.uiManager.screenManager.registerScreen(new MainMenu('ui-root', () => {
+      this.gameLoop.start();
+    }));
+    this.uiManager.screenManager.registerScreen(this.inGameMenu);
 
     this.setupEventBusMappings();
 
@@ -120,19 +141,37 @@ export class Game {
     this.gameLoop = new GameLoop(context);
     this.setupMouseListeners();
 
+    try {
+      await this.gridEngine.loadSpriteSheetAndAnalyze('/buildings.png');
+    } catch (err) {
+      console.warn('Could not load custom buildings.png, falling back to mock structures:', err);
+    }
+
     const layout = this.runManager.generateContractLayout(30, GRID_COLS, GRID_ROWS, this.gridEngine);
     this.gridRenderer.updateTint(layout.hueTint);
     this.app.stage.visible = false;
 
-    const mainMenu = new MainMenu('game-container', () => {
+    const mainMenu = new MainMenu('ui-root', () => {
       this.gameLoop.start();
     });
-    mainMenu.show();
+    this.uiManager.showScreen('main-menu');
+    this.uiManager.setHUDVisible(false);
   }
 
   private setupEventBusMappings(): void {
-    EventBus.on('UI_UPDATE_HUD', (data) => {
+    EventBus.on('GAME_START', () => {
+      this.uiManager.hideAllScreens();
+      this.uiManager.setHUDVisible(true);
+    });
+
+    EventBus.on('UI_UPDATE_HUD', (data: any) => {
       this.uiManager.updateHUD(data.cash, data.day, data.remainingTime);
+    });
+
+    EventBus.on('UI_SHOW_SETTINGS', () => {
+      // Store current active screen before opening settings
+      this.lastScreenBeforeSettings = this.uiManager.screenManager.activeScreenId;
+      this.settingsModal.show();
     });
 
     EventBus.on('GAME_RESTART_RUN', () => {
@@ -147,7 +186,23 @@ export class Game {
       this.gameLoop.selectDraftCard(cardId);
     });
 
-    EventBus.on('UI_SHOW_DRAFT', (data) => {
+    EventBus.on('GAME_NEXT_DAY', () => {
+      this.gameLoop.progressToNextDay();
+      this.app.stage.visible = true;
+      this.uiManager.hideAllScreens();
+      this.uiManager.setHUDVisible(true);
+    });
+
+    EventBus.on('GAME_OPEN_UPGRADES', (data: any) => {
+      this.upgradeTreeUI.setContext(data?.mode || 'SUCCESS');
+      this.uiManager.showScreen('upgrade-tree');
+    });
+
+    EventBus.on('UI_SHOW_POST_DRAFT_CHOICE', (data: any) => {
+      this.uiManager.showScreen('post-draft-choice', { mode: 'SUCCESS', day: data.day });
+    });
+
+    EventBus.on('UI_SHOW_DRAFT', (data: any) => {
       const { isGameOver, currentDay, cards } = data;
       const uiCards = cards.map((c: any) => ({
         id: c.id,
@@ -157,19 +212,36 @@ export class Game {
         rarity: c.rarity,
         cost: c.cost,
       }));
-      this.uiManager.showDraftOverlay(isGameOver, currentDay, uiCards);
+      this.uiManager.showScreen('draft', { isGameOver, currentDay, cards: uiCards });
     });
 
     EventBus.on('UI_HIDE_DRAFT', () => {
-      this.uiManager.hideDraftOverlay();
+      this.uiManager.hideAllScreens();
     });
 
-    EventBus.on('UI_SHOW_TIMEOUT', (data) => {
-      this.timeOutScreen.show(data.day, data.cash);
+    EventBus.on('UI_SHOW_TIMEOUT', (data: any) => {
+      this.uiManager.showScreen('timeout', { day: data.day, earnedCash: data.cash });
     });
 
-    EventBus.on('UI_SHOW_UPGRADES', () => {
-      this.upgradeTreeUI.show();
+    EventBus.on('GAME_PAUSE', () => {
+      this.gameLoop?.togglePause();
+    });
+
+    EventBus.on('GAME_RESUME', () => {
+      this.uiManager.hideAllScreens();
+      this.gameLoop?.togglePause();
+    });
+
+    EventBus.on('UI_SETTINGS_CLOSED', () => {
+      if (this.lastScreenBeforeSettings) {
+        this.uiManager.showScreen(this.lastScreenBeforeSettings);
+        this.lastScreenBeforeSettings = null;
+      }
+    });
+
+    EventBus.on('UI_SHOW_UPGRADES', (data: any) => {
+      this.upgradeTreeUI.setContext(data?.mode || 'SUCCESS');
+      this.uiManager.showScreen('upgrade-tree');
     });
   }
 
@@ -184,7 +256,6 @@ export class Game {
         this.gameLoop.setMouseGridPosition(0, 0, false);
         return;
       } 
-
       const globalX = e.global.x;
       const globalY = e.global.y;
       const gridX = Math.floor(globalX / GRID_CELL_SIZE);
@@ -208,7 +279,7 @@ export class Game {
     this.app.stage.on('pointermove', onPointerMove);
     this.app.stage.on('pointerleave', () => {
       this.cursorCircle.visible = false;
-      this.cursorCircleFill.visible = false;
+      this.cursorCircleFill. visible = false;
       this.gameLoop.setMouseGridPosition(0, 0, false);
     });
   }
