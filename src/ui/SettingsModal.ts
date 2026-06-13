@@ -1,8 +1,10 @@
 // src/ui/SettingsModal.ts - Shared settings and hard reset utility.
 import { SaveManager } from '../engine/SaveManager';
 import { EventBus } from '../core/EventBus';
+import { UIScreen } from './UIScreen';
 
-export class SettingsModal {
+export class SettingsModal implements UIScreen {
+  public readonly id = 'settings-modal';
   private containerId: string;
   private modalEl: HTMLElement | null = null;
 

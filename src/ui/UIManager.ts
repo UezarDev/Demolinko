@@ -10,7 +10,7 @@ export class UIManager {
   private hudDay: HTMLElement | null = null;
   private hudTimer: HTMLElement | null = null;
   private configBtn: HTMLElement | null = null;
-  private screenManager: ScreenManager;
+  public screenManager: ScreenManager;
 
   constructor(containerId: string = 'game-container') {
     this.containerId = containerId;

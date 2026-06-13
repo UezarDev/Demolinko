@@ -14,6 +14,7 @@ export interface DecisionConfig {
 }
 
 export class DecisionModal implements UIScreen {
+  public readonly id = 'decision-modal';
   private containerId: string;
   private modalEl: HTMLElement | null = null;
 

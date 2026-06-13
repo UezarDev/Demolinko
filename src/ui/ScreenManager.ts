@@ -3,9 +3,13 @@ import { UIScreen } from './UIScreen';
 
 export class ScreenManager {
   private screens: Map<string, UIScreen> = new Map();
-  private activeScreenId: string | null = null;
+  private _activeScreenId: string | null = null;
   private blurEl: HTMLElement | null = null;
   private rootId: string;
+
+  public get activeScreenId(): string | null {
+    return this._activeScreenId;
+  }
   
   // Screens that should show the blur backdrop behind them
   private blurScreens: Set<string> = new Set([
@@ -37,7 +41,7 @@ export class ScreenManager {
    * Transitions to a specific screen, automatically hiding the current one.
    */
   public transitionTo(id: string, data?: any): void {
-    if (this.activeScreenId === id) return;
+    if (this._activeScreenId === id) return;
 
     // Special case: If transitioning to null or empty, treat as hideAll
     if (!id) {
@@ -46,13 +50,13 @@ export class ScreenManager {
     }
 
     // 1. Hide the currently active screen
-    if (this.activeScreenId) {
-      const current = this.screens.get(this.activeScreenId);
+    if (this._activeScreenId) {
+      const current = this.screens.get(this._activeScreenId);
       current?.hide();
     }
 
     // 2. Update active tracking
-    this.activeScreenId = id;
+    this._activeScreenId = id;
 
     // 3. Show the new screen
     const next = this.screens.get(id);
@@ -68,7 +72,7 @@ export class ScreenManager {
     } else {
       console.error(`ScreenManager: Screen "${id}" is not registered.`);
       this.setBlur(false);
-      this.activeScreenId = null;
+      this._activeScreenId = null;
     }
   }
 
@@ -76,11 +80,11 @@ export class ScreenManager {
    * Hides all screens and clears the backdrop.
    */
   public hideAll(): void {
-    if (this.activeScreenId) {
-      const current = this.screens.get(this.activeScreenId);
+    if (this._activeScreenId) {
+      const current = this.screens.get(this._activeScreenId);
       current?.hide();
     }
-    this.activeScreenId = null;
+    this._activeScreenId = null;
     this.setBlur(false);
   }
 
