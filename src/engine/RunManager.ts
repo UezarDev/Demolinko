@@ -32,6 +32,12 @@ Exports:
 import { UPGRADE_TREE } from '../config/upgrades';
 import { SaveManager } from './SaveManager';
 import buildingLibrary from '../../building_library.json';
+import {
+  PROGRESSION,
+  DRAFT_CARDS,
+  PIT_SYSTEM,
+  CONTRACT_TIMER,
+} from '../config/balance';
 
 export interface DraftCard {
   id: string;
@@ -57,7 +63,7 @@ export class RunManager {
 
   // Contract Timer and Upgrade System state
   public isContractTimerActive: boolean = false;
-  public contractRemainingTime: number = 60;
+  public contractRemainingTime: number = CONTRACT_TIMER.INITIAL_SECONDS;
   public activeUpgrades: string[] = [];
 
   public get modifiers() {
@@ -197,9 +203,9 @@ export class RunManager {
         const pegs = pegBoard.getPegs();
         // Upgrade 3 random pegs
         const shuffled = [...pegs].sort(() => Math.random() - 0.5);
-        for (let i = 0; i < Math.min(3, shuffled.length); i++) {
-          shuffled[i].level += 1;
-          shuffled[i].multiplier += 0.5;
+        for (let i = 0; i < Math.min(DRAFT_CARDS.UPGRADE_NORMAL_PEGS.COUNT, shuffled.length); i++) {
+          shuffled[i].level += DRAFT_CARDS.UPGRADE_NORMAL_PEGS.LEVEL_BONUS;
+          shuffled[i].multiplier += DRAFT_CARDS.UPGRADE_NORMAL_PEGS.MULTIPLIER_BONUS;
         }
         break;
       }
@@ -207,7 +213,7 @@ export class RunManager {
         const pegs = pegBoard.getPegs();
         const normalPegs = pegs.filter((p: any) => p.type === 'NORMAL');
         const shuffled = [...normalPegs].sort(() => Math.random() - 0.5);
-        for (let i = 0; i < Math.min(2, shuffled.length); i++) {
+        for (let i = 0; i < Math.min(DRAFT_CARDS.ADD_BOUNCER_PEG.COUNT, shuffled.length); i++) {
           shuffled[i].type = 'BOUNCER';
         }
         break;
@@ -215,8 +221,8 @@ export class RunManager {
       case 'increase_all_pits': {
         const pits = pitManager.getPits();
         const shuffled = [...pits].sort(() => Math.random() - 0.5);
-        for (let i = 0; i < Math.min(3, shuffled.length); i++) {
-          shuffled[i].baseMultiplier += 0.3;
+        for (let i = 0; i < Math.min(DRAFT_CARDS.INCREASE_ALL_PITS.COUNT, shuffled.length); i++) {
+          shuffled[i].baseMultiplier += DRAFT_CARDS.INCREASE_ALL_PITS.BASE_MULTIPLIER_BONUS;
         }
         break;
       }
@@ -246,7 +252,7 @@ export class RunManager {
    * unpredictability of random partitioning and ensures consistent contract layouts.
    */
   private solveDifficultySum(target: number): number[] {
-    if (target <= 16) {
+    if (target <= PROGRESSION.MAX_BUILDING_RANK) {
       return [target];
     }
 
@@ -254,9 +260,9 @@ export class RunManager {
     let remaining = target;
 
     // Greedily use max rank (16) to minimize building count and ensure predictability
-    while (remaining > 16) {
-      ranks.push(16);
-      remaining -= 16;
+    while (remaining > PROGRESSION.MAX_BUILDING_RANK) {
+      ranks.push(PROGRESSION.MAX_BUILDING_RANK);
+      remaining -= PROGRESSION.MAX_BUILDING_RANK;
     }
 
     // Add the remainder (guaranteed to be 1-16)
@@ -298,7 +304,7 @@ export class RunManager {
     this.lastSelectedFrames = selectedFrames;
 
     // Smart horizontal bounding box packing
-    const gap = 3; 
+    const gap = PROGRESSION.BUILDING_GAP;
     let totalContentWidth = 0;
     const bboxes = selectedFrames.map(f => gridEngine.getBoundingBox(f));
 
@@ -349,7 +355,7 @@ export class RunManager {
     // Evaluate whether the player completed the entire tier (clearing all base frames)
     if (this.completedFramesInTier.every(v => v)) {
       this.layoutTier += 1;
-      this.difficultyMultiplier *= 1.8; // Apply multiplier for the next cycle
+      this.difficultyMultiplier *= PROGRESSION.TIER_DIFFICULTY_MULTIPLIER; // Apply multiplier for the next cycle
       this.completedFramesInTier.fill(false); // Reset frame progression list
       return true; // Tier has transitioned!
     }
@@ -400,11 +406,11 @@ export class RunManager {
         const shuffled = [...normalPegs].sort(() => Math.random() - 0.5);
 
         if (upgradeId === 'unlock_bouncer') {
-          for (let i = 0; i < Math.min(3, shuffled.length); i++) {
+          for (let i = 0; i < Math.min(PIT_SYSTEM.COUNT / 4, shuffled.length); i++) {
             shuffled[i].type = 'BOUNCER';
           }
         } else if (upgradeId === 'unlock_splitter') {
-          for (let i = 0; i < Math.min(3, shuffled.length); i++) {
+          for (let i = 0; i < Math.min(PIT_SYSTEM.COUNT / 4, shuffled.length); i++) {
             shuffled[i].type = 'SPLITTER';
           }
         } else if (upgradeId === 'unlock_alchemist') {

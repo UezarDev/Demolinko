@@ -21,6 +21,7 @@
 | **1d**: Abilities Panel UI (right side) | `tick-20260612-1815` | 18:15 | Persistent right-side panel with glassmorphic slots, cooldown overlays, key hints (1-4), upgrade level indicators, targeting mode for Wrecking Ball L2+, tooltips, ESC cancel |
 | Fix AbilityManager TS build errors | `b8fdb1a` | 19:44 | Added MaterialType import, fixed enum usage, removed unused vars, fixed deserialize types |
 | **1e**: Wider View (5 buildings) | `tick-20260612-2005` | 20:05 | VIEW_WIDTH 800→1200 (GRID_COLS 200→300), centralized constants in constants.ts, Game.ts imports, CSS container 1200px |
+| **2a**: Balance Config (`balance.ts`) | `tick-20260612-2100` | 21:00 | New `balance.ts` with 13 config sections; replaced magic numbers in GameLoop.ts, RunManager.ts, PitManager.ts, constants.ts |
 
 ---
 
@@ -34,7 +35,6 @@
 ## Pending (Priority Order — Cron Picks Top Unblocked ⏳)
 | Task | Priority | Blocked By | Notes |
 |------|----------|------------|-------|
-| **2a**: Balance Config (`balance.ts`) | P4 | — | Extract all magic numbers from engine files |
 | **2b**: Decompose God Files | P4 | 2a | `PhysicsOrchestrator`, `ProgressionOrchestrator`, `UIOrchestrator` |
 ---
 
