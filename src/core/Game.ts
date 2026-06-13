@@ -105,6 +105,29 @@ export class Game {
     this.abilitiesPanel = new AbilitiesPanel('game-container', this.abilityManager);
     this.abilitiesPanel.show();
 
+    // Create GameLoop with context
+    const context: GameContext = {
+      app: this.app,
+      gridEngine: this.gridEngine,
+      plinkoBoard: this.plinkoBoard,
+      pitManager: this.pitManager,
+      runManager: this.runManager,
+      particleRenderer: this.particleRenderer,
+      gridRenderer: this.gridRenderer,
+      pegGraphics: pegGraphics,
+      pitGraphics: pitGraphics,
+      cursorCircle: this.cursorCircle,
+      cursorCircleFill: this.cursorCircleFill,
+      config: {
+        viewWidth: VIEW_WIDTH,
+        viewHeight: VIEW_HEIGHT,
+        gridCols: GRID_COLS,
+        gridRows: GRID_ROWS,
+        gridCellSize: GRID_CELL_SIZE,
+      },
+    };
+    this.gameLoop = new GameLoop(context, this.abilityManager);
+
     this.upgradeTreeUI = new UpgradeTreeUI(
       'ui-root',
       this.runManager,
@@ -137,9 +160,6 @@ export class Game {
     this.gridRenderer.updateTint(layout.hueTint);
     this.app.stage.visible = false;
 
-    const mainMenu = new MainMenu('ui-root', () => {
-      this.gameLoop.start();
-    });
     this.uiManager.showScreen('main-menu');
     this.uiManager.setHUDVisible(false);
   }
