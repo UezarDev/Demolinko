@@ -2,6 +2,8 @@
 
 import { GridBuffer } from './GridBuffer';
 import { CellState, PixelParticle } from '../types/game';
+import { emitAudioEvent } from './AudioManager';
+import { EventBus } from '../core/EventBus';
 
 export class GridPhysics {
   private _isDirty: boolean = false;
@@ -63,6 +65,13 @@ export class GridPhysics {
               splitCount: 0,
               lastSplitPegId: null,
             });
+            
+            // Audio: Particle spawn
+            emitAudioEvent('PARTICLE_SPAWN', {
+              material: cell.material,
+              count: 1
+            });
+
             this.markDirty();
           }
           continue;
@@ -143,6 +152,26 @@ export class GridPhysics {
       for (let x = 0; x < this.buffer.width; x++) {
         const cell = this.buffer.getCell(x, y);
         if (cell && cell.state === CellState.STATIC && !visited[y][x]) {
+          const material = cell.material;
+          const worldX = x * 4;
+          const worldY = y * 4;
+
+          // General event for particle systems / effects
+          EventBus.emit('PIXEL_COLLAPSE', {
+            pixelCount: 1,
+            material,
+            x: worldX,
+            y: worldY,
+          });
+
+          // Audio: Pixel collapse
+          emitAudioEvent('PIXEL_COLLAPSE', {
+            pixelCount: 1,
+            material,
+            x: worldX,
+            y: worldY,
+          });
+
           cell.state = CellState.SAND;
           this.markDirty();
         }
@@ -156,8 +185,27 @@ export class GridPhysics {
     if (!cell || cell.state !== CellState.STATIC) return;
     cell.hp -= damage;
     if (cell.hp <= 0) {
+      const material = cell.material;
+      const worldX = gridX * 4;
+      const worldY = gridY * 4;
       cell.state = CellState.SAND;
       this.markDirty();
+
+      // General event for particle systems / effects
+      EventBus.emit('PIXEL_COLLAPSE', {
+        pixelCount: 1,
+        material,
+        x: worldX,
+        y: worldY,
+      });
+
+      // Audio: Pixel collapse
+      emitAudioEvent('PIXEL_COLLAPSE', {
+        pixelCount: 1,
+        material,
+        x: worldX,
+        y: worldY,
+      });
     }
   }
 

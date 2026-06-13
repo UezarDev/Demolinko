@@ -1,4 +1,5 @@
 import { EventBus } from "../core/EventBus";
+import { emitAudioEvent } from '../engine/AudioManager';
 // src/ui/UpgradeTree.ts - Draggable Upgrade Tree UI component featuring glassmorphic cards, canvas link lines, and progression constraints.
 import { UPGRADE_TREE } from '../config/upgrades';
 import { RunManager } from '../engine/RunManager';
@@ -296,6 +297,16 @@ export class UpgradeTreeUI implements UIScreen {
 
         cardEl.onclick = () => {
           if (this.runManager.purchaseUpgrade(node.id, this.plinkoBoard)) {
+            // Audio: Upgrade purchased
+            emitAudioEvent('UPGRADE_PURCHASED', {
+              upgradeId: node.id,
+              cost: node.cost,
+              title: node.title
+            });
+
+            // Direct event for game systems (e.g., ability unlocks)
+            EventBus.emit('UPGRADE_PURCHASED', { upgradeId: node.id });
+
             EventBus.emit('UI_UPDATE_HUD', { cash: this.runManager.getCash(), day: this.runManager.getDay(), remainingTime: this.runManager.contractRemainingTime });
             this.render();
             if (this.onUpgradePurchased) {
@@ -306,7 +317,6 @@ export class UpgradeTreeUI implements UIScreen {
             this.render(); // Redraw tree elements
           }
         };
-      } else {
         cardEl.classList.add('node-hidden');
         cardEl.innerHTML = `<span class="node-icon">🔒</span>`;
       }

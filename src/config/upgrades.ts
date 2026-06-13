@@ -33,6 +33,18 @@ Each upgrade can specify one or more of the following keywords inside its `effec
 7. `unlockAlchemists`:
    - Description: Enables Alchemist pegs to be unlocked on the board.
    - Value: boolean. When bought, random normal pegs on the Plinko board are transmuted into magenta ALCHEMIST pegs.
+
+8. `unlockWreckingBall`:
+   - Description: Unlocks the Wrecking Ball ability (Key 1). Random target mode.
+   - Value: boolean. When bought, enables the Wrecking Ball ability in the Abilities Panel.
+
+9. `upgradeWreckingBallTargeted`:
+   - Description: Upgrades Wrecking Ball to targeted mode. Click to aim.
+   - Value: boolean. Requires unlockWreckingBall. Changes Wrecking Ball from random to click-targeted.
+
+10. `upgradeWreckingBallMultiBall`:
+    - Description: Upgrades Wrecking Ball to Multi-Ball. 3 impacts per activation.
+    - Value: boolean. Requires upgradeWreckingBallTargeted. Spawns 2 additional smaller impacts.
 =========================================================================================
 */
 
@@ -44,6 +56,10 @@ export interface UpgradeEffect {
   unlockBouncers?: boolean;
   unlockSplitters?: boolean;
   unlockAlchemists?: boolean;
+  // Abilities System
+  unlockWreckingBall?: boolean;
+  upgradeWreckingBallTargeted?: boolean;
+  upgradeWreckingBallMultiBall?: boolean;
 }
 
 export interface UpgradeNode {
@@ -200,5 +216,39 @@ export const UPGRADE_TREE: UpgradeNode[] = [
     pos: { x: 550, y: 450 },
     requires: ['cursor_speed_1'],
     effect: { cursorSpeed: 0.20 },
+  },
+
+  // -------------------------------------------------------------
+  // Top Wing: Abilities System
+  // -------------------------------------------------------------
+  {
+    id: 'unlock_wrecking_ball',
+    title: 'Unlock Wrecking Ball',
+    description: 'Unleashes a massive demolition sphere at a random structural target every 30s. Press 1 to activate.',
+    icon: '🏐',
+    cost: 60,
+    pos: { x: 400, y: 50 },
+    requires: ['base_speed'],
+    effect: { unlockWreckingBall: true },
+  },
+  {
+    id: 'wrecking_ball_targeted',
+    title: 'Wrecking Ball: Targeted',
+    description: 'Wrecking Ball becomes click-targeted. Choose exactly where the sphere strikes. Press 1, then click target.',
+    icon: '🎯',
+    cost: 120,
+    pos: { x: 250, y: 50 },
+    requires: ['unlock_wrecking_ball'],
+    effect: { upgradeWreckingBallTargeted: true },
+  },
+  {
+    id: 'wrecking_ball_multiball',
+    title: 'Wrecking Ball: Multi-Ball',
+    description: 'Wrecking Ball triggers 3 impacts per activation. The main sphere plus 2 satellite strikes.',
+    icon: '🔮',
+    cost: 200,
+    pos: { x: 100, y: 50 },
+    requires: ['wrecking_ball_targeted'],
+    effect: { upgradeWreckingBallMultiBall: true },
   },
 ];

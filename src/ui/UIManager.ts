@@ -101,14 +101,12 @@ export class UIManager {
 
   /**
    * Updates HUD stats text with formatted values.
-
    */
   public updateHUD(cash: number, day: number, remainingTime?: number): void {
     if (this.hudCash) this.hudCash.innerText = `$${cash}`;
     if (this.hudDay) this.hudDay.innerText = `Day ${day}`;
     if (this.hudTimer && remainingTime !== undefined) {
       this.hudTimer.innerText = `${remainingTime.toFixed(1)}s`;
-      
       this.hudTimer.className = 'hud-value timer-val';
       if (remainingTime <= 10) {
         this.hudTimer.classList.add('critical');

@@ -15,12 +15,10 @@ import { DraftOverlay } from '../ui/DraftOverlay';
 import { PostDraftOverlay } from '../ui/PostDraftOverlay';
 import { SettingsModal } from '../ui/SettingsModal';
 import { InGameMenu } from '../ui/InGameMenu';
-
-const VIEW_WIDTH = 800;
-const VIEW_HEIGHT = 900;
-const GRID_CELL_SIZE = 4;
-const GRID_COLS = VIEW_WIDTH / GRID_CELL_SIZE;
-const GRID_ROWS = 100;
+import { AudioManager } from '../engine/AudioManager';
+import { AbilityManager } from '../engine/AbilityManager';
+import { AbilitiesPanel } from '../ui/AbilitiesPanel';
+import { VIEW_WIDTH, VIEW_HEIGHT, GRID_CELL_SIZE, GRID_COLS, GRID_ROWS } from '../config/constants';
 
 export class Game {
   private app!: Application;
@@ -39,6 +37,8 @@ export class Game {
   private settingsModal!: SettingsModal;
   private inGameMenu!: InGameMenu;
   private lastScreenBeforeSettings: string | null = null;
+  private abilityManager!: AbilityManager;
+  private abilitiesPanel!: AbilitiesPanel;
 
   public async bootstrap(): Promise<void> {
     TextureStyle.defaultOptions.scaleMode = 'nearest';
@@ -88,14 +88,23 @@ export class Game {
 
     this.uiManager = new UIManager('game-container');
     this.uiManager.setupHUDAndOverlays();
-    
+
     // Register screens with UIManager's internal ScreenManager
     this.uiManager.registerScreens(
-      new DraftOverlay('ui-root'), 
+      new DraftOverlay('ui-root'),
       new PostDraftOverlay('ui-root')
     );
     this.settingsModal = new SettingsModal('ui-root');
     this.timeOutScreen = new TimeOutScreen('ui-root');
+
+    // Initialize AudioManager
+    AudioManager.getInstance().init({ debugLog: true });
+
+    // Initialize AbilityManager and AbilitiesPanel
+    this.abilityManager = new AbilityManager();
+    this.abilitiesPanel = new AbilitiesPanel('game-container', this.abilityManager);
+    this.abilitiesPanel.show();
+
     this.upgradeTreeUI = new UpgradeTreeUI(
       'ui-root',
       this.runManager,
@@ -105,7 +114,7 @@ export class Game {
       () => this.plinkoBoard?.render(pegGraphics)
     );
     this.inGameMenu = new InGameMenu('ui-root');
-    
+
     // Register all remaining screens to the manager
     this.uiManager.screenManager.registerScreen(this.settingsModal);
     this.uiManager.screenManager.registerScreen(this.timeOutScreen);
@@ -116,30 +125,7 @@ export class Game {
     this.uiManager.screenManager.registerScreen(this.inGameMenu);
 
     this.setupEventBusMappings();
-
-    const context: GameContext = {
-      app: this.app,
-      gridEngine: this.gridEngine,
-      plinkoBoard: this.plinkoBoard,
-      pitManager: this.pitManager,
-      runManager: this.runManager,
-      particleRenderer: this.particleRenderer,
-      gridRenderer: this.gridRenderer,
-      pegGraphics: pegGraphics,
-      pitGraphics: pitGraphics,
-      cursorCircle: this.cursorCircle,
-      cursorCircleFill: this.cursorCircleFill,
-      config: {
-        viewWidth: VIEW_WIDTH,
-        viewHeight: VIEW_HEIGHT,
-        gridCols: GRID_COLS,
-        gridRows: GRID_ROWS,
-        gridCellSize: GRID_CELL_SIZE,
-      },
-    };
-
-    this.gameLoop = new GameLoop(context);
-    this.setupMouseListeners();
+    this.setupKeyboardListeners();
 
     try {
       await this.gridEngine.loadSpriteSheetAndAnalyze('/buildings.png');
@@ -243,6 +229,51 @@ export class Game {
       this.upgradeTreeUI.setContext(data?.mode || 'SUCCESS');
       this.uiManager.showScreen('upgrade-tree');
     });
+
+    // Ability activation request from UI
+    EventBus.on('ABILITY_ACTIVATE_REQUEST', (data: { abilityId: string }) => {
+      this.gameLoop.activateAbility(data.abilityId);
+    });
+
+    // Ability unlocked from upgrade purchase
+    EventBus.on('ABILITY_UNLOCKED', (data: { abilityId: string; level: number }) => {
+      this.abilityManager.unlockAbility(data.abilityId, data.level);
+    });
+  }
+
+  private setupKeyboardListeners(): void {
+    window.addEventListener('keydown', (e) => {
+      // Ignore if typing in an input field
+      const activeEl = document.activeElement as HTMLElement | null;
+      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.contentEditable === 'true')) {
+        return;
+      }
+
+      // ESC cancels targeting mode
+      if (e.key === 'Escape') {
+        this.gameLoop.setAbilityTargetingMode('wrecking_ball', false);
+        return;
+      }
+
+      // Ability hotkeys 1-4
+      const keyMap: Record<string, string> = {
+        '1': 'wrecking_ball',
+        '2': 'seismic_slam',
+        '3': 'gravity_well',
+        '4': 'time_dilation',
+      };
+
+      const abilityId = keyMap[e.key];
+      if (abilityId && this.abilityManager.getAbility(abilityId)?.unlocked) {
+        const ability = this.abilityManager.getAbility(abilityId);
+        if (ability && ability.upgradeLevel >= 2 && abilityId === 'wrecking_ball') {
+          // Toggle targeting mode
+          this.gameLoop.setAbilityTargetingMode(abilityId, true);
+        } else {
+          this.gameLoop.activateAbility(abilityId);
+        }
+      }
+    });
   }
 
   private setupMouseListeners(): void {
@@ -255,7 +286,7 @@ export class Game {
         this.cursorCircleFill.visible = false;
         this.gameLoop.setMouseGridPosition(0, 0, false);
         return;
-      } 
+      }
       const globalX = e.global.x;
       const globalY = e.global.y;
       const gridX = Math.floor(globalX / GRID_CELL_SIZE);
@@ -273,13 +304,13 @@ export class Game {
         this.cursorCircle.visible = false;
         this.cursorCircleFill.visible = false;
         this.gameLoop.setMouseGridPosition(0, 0, false);
-      } 
+      }
     };
 
     this.app.stage.on('pointermove', onPointerMove);
     this.app.stage.on('pointerleave', () => {
       this.cursorCircle.visible = false;
-      this.cursorCircleFill. visible = false;
+      this.cursorCircleFill.visible = false;
       this.gameLoop.setMouseGridPosition(0, 0, false);
     });
   }
