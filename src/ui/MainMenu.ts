@@ -1,5 +1,4 @@
 // src/ui/MainMenu.ts - Lightweight Main Menu UI overlay component.
-import { SaveManager } from '../engine/SaveManager';
 import { UIScreen } from './UIScreen';
 import { EventBus } from '../core/EventBus';
 
@@ -20,7 +19,7 @@ export class MainMenu implements UIScreen {
     this.onPlay = onPlay;
   }
 
-  public show(data?: any): void {
+  public show(_data?: any): void {
     const parent = document.getElementById(this.containerId);
     if (!parent) return;
 

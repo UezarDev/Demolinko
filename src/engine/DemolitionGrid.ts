@@ -63,7 +63,6 @@ export class DemolitionGrid {
 
         for (let row = 0; row < rows; row++) {
           for (let col = 0; col < cols; col++) {
-            const f = row * cols + col;
             const frameCells: (any | null)[][] = Array.from({ length: this.spriteCellSize }, () => Array(this.spriteCellSize).fill(null));
             let minX = this.spriteCellSize, maxX = -1, minY = this.spriteCellSize, maxY = -1;
             let nonTransparentCount = 0;

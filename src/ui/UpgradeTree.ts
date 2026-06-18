@@ -54,7 +54,7 @@ export class UpgradeTreeUI implements UIScreen {
   /**
    * Initializes and presents the fullscreen Upgrade Tree overlay in the DOM.
    */
-  public show(data?: any): void {
+  public show(_data?: any): void {
     const parent = document.getElementById(this.containerId);
     if (!parent) return;
 

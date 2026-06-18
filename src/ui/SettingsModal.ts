@@ -12,7 +12,7 @@ export class SettingsModal implements UIScreen {
     this.containerId = containerId;
   }
 
-  public show(data?: any): void {
+  public show(_data?: any): void {
     const parent = document.getElementById(this.containerId);
     if (!parent) return;
 

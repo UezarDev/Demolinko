@@ -149,6 +149,7 @@ export class Game {
 
     this.setupEventBusMappings();
     this.setupKeyboardListeners();
+    this.setupMouseListeners();
 
     try {
       await this.gridEngine.loadSpriteSheetAndAnalyze('/buildings.png');
